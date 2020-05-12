@@ -12,7 +12,7 @@ namespace HandyHansel
         {
             ClientConfig = new DiscordConfiguration
             {
-                Token = "BOT_TOKEN",
+                Token = Environment.GetEnvironmentVariable("BOT_TOKEN"),
                 TokenType = TokenType.Bot,
                 UseInternalLogHandler = true,
                 LogLevel = LogLevel.Debug,
