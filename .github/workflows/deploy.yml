@@ -33,12 +33,22 @@ jobs:
     - name: Create executable of HandyHansel
       run: dotnet publish -c Release --output ./${{ env.RELEASE_PATH }}/x64/HandyHanselDir --runtime ubuntu.18.04-x64 -p:PublishSingleFile=true --self-contained true --source https://api.nuget.org/v3/index.json --source https://nuget.emzi0767.com/api/v3/index.json 
       
-    - name: Stop old process
-      run: ssh -i <(printf "%s" "${{ secrets.USER_GITHUB_DEPLOY_PK }}") ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "pkill HandyHansel"
-      
-    - name: Delete old executable
-      run: ssh -i <(printf "%s" "${{ secrets.USER_GITHUB_DEPLOY_PK }}") ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel; rm -rf ./*"
-      
+    - name: Stop old process using SSH command
+      uses: garygrossgarten/github-action-ssh@v0.5.0
+      with: 
+        command: pkill HandyHansel
+        host: ${{ secrets.LINODE_HOST_NAME }}
+        username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
+        privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
+        
+    - name: Delete old executable using SSH command
+      uses: garygrossgarten/github-action-ssh@v0.5.0
+      with: 
+        command: cd HandyHansel; rm -rf ./*;
+        host: ${{ secrets.LINODE_HOST_NAME }}
+        username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
+        privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
+  
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
       env:
@@ -48,6 +58,11 @@ jobs:
         REMOTE_HOST: ${{ secrets.LINODE_HOST_NAME }}
         REMOTE_USER: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         TARGET: ${{ secrets.TARGET }}
-    
-    - name: Start new process
-      run: ssh -i <(printf "%s" "${{ secrets.USER_GITHUB_DEPLOY_PK }}") ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;"
+        
+    - name: Start new process using SSH command
+      uses: garygrossgarten/github-action-ssh@v0.5.0
+      with: 
+        command: cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;
+        host: ${{ secrets.LINODE_HOST_NAME }}
+        username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
+        privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
