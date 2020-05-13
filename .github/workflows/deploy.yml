@@ -38,7 +38,7 @@ jobs:
       env:
         SSH_PRIVATE_KEY: ${{ secrets.USER_GITHUB_DEPLOY_PK }}
         ARGS: "-rltgoDzvO"
-        SOURCE: ${{ env.RELEASE_PATH }}/x64/HandyHansel.exe }}
+        SOURCE: ${{ env.RELEASE_PATH }}/x64/HandyHansel.exe
         REMOTE_HOST: ${{ secrets.LINODE_HOST_NAME }}
         REMOTE_USER: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         TARGET: ${{ secrets.TARGET }}
