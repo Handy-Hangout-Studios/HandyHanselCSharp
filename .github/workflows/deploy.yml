@@ -62,7 +62,7 @@ jobs:
     - name: Start new process using SSH command
       uses: garygrossgarten/github-action-ssh@v0.5.0
       with: 
-        command: cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;
+        command: export BOT_TOKEN=${{ secrets.BOT_TOKEN }}; cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
