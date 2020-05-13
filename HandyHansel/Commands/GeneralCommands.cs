@@ -93,20 +93,17 @@ namespace HandyHansel.Commands
         [Command("allTimes")]
         public async Task AllTimesOnSystem(CommandContext context)
         {
-            if (context.User.Username != "ProfDoof") return;
-            List<TimeZoneInfo> correctResponses = getListOfTimeZones();
+            if (context.User.Username != "Prof Doofenshmirtz") return;
+            List<TimeZoneInfo> correctResponses = TimeZoneInfo.GetSystemTimeZones().ToList();
             string description = "";
             for (int i = 0; i < correctResponses.Count; i++)
             {
                 description += correctResponses[i].Id + (i == correctResponses.Count - 1 ? " " : "\n\n");
             }
-            DiscordEmbed embed = new DiscordEmbedBuilder
-            {
-                Title = "All System Times",
-                Description = description,
-            };
 
-            await context.RespondAsync(embed: embed);
+            System.IO.File.WriteAllText(@"AllTimes.txt", description);
+
+            await context.RespondWithFileAsync(@"AllTimes.txt");
         }
 
         [Command("test")]
