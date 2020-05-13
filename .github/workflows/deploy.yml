@@ -33,11 +33,14 @@ jobs:
     - name: Create executable of HandyHansel
       run: dotnet publish -c Release --output ./${{ env.RELEASE_PATH }}/x64/HandyHanselDir --runtime ubuntu.18.04-x64 -p:PublishSingleFile=true --self-contained true --source https://api.nuget.org/v3/index.json --source https://nuget.emzi0767.com/api/v3/index.json 
       
+    - name: Create Deployment_key 
+      run: echo ${{ secrets.USER_GITHUB_DEPLOY_PK }} > deployment_key.txt
+      
     - name: Stop old process
-      run: ssh ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "pkill HandyHansel"
+      run: ssh -i deployment_key.txt ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "pkill HandyHansel"
       
     - name: Delete old executable
-      run: ssh ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel; rm -rf ./*"
+      run: ssh -i deployment_key.txt ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel; rm -rf ./*"
       
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
@@ -50,4 +53,4 @@ jobs:
         TARGET: ${{ secrets.TARGET }}
     
     - name: Start new process
-      run: ssh ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;"
+      run: ssh -i deployment_key.txt ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}@${{ secrets.LINODE_HOST_NAME }} "cd HandyHansel/HandyHanselDir; nohup ./HandyHansel;"
