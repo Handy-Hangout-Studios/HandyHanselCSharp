@@ -90,6 +90,12 @@ namespace HandyHansel.Commands
             }
         }
 
+        [Command("test")]
+        public async Task TestingCICD(CommandContext context)
+        {
+            await context.RespondAsync($"{context.User.Mention}! It WORKED! IT WORKED! IT REALLY REALLY WORKED!");
+        }
+
         List<TimeZoneInfo> getListOfTimeZones()
         {
             List<TimeZoneInfo> timeZoneInfos = new List<TimeZoneInfo>();
