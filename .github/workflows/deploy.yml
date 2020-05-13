@@ -35,7 +35,7 @@ jobs:
       run: dotnet restore -s https://api.nuget.org/v3/index.json -s https://nuget.emzi0767.com/api/v3/index.json
 
     - name: Create executable of HandyHansel
-      run: dotnet publish -c Release --output ${{ env.RELEASE_PATH }}/${{ matrix.targetplatform }} --runtime win-${{ matrix.targetplatform }} -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
+      run: dotnet publish -c Release --output ${{ env.RELEASE_PATH }}/${{ matrix.targetplatform }} --runtime ubuntu.18.04-${{ matrix.targetplatform }} -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
       
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
