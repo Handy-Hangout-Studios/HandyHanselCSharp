@@ -14,10 +14,6 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        targetplatform: [x86, x64]
 
     env: 
       RELEASE_PATH: ./bin/release 
@@ -35,14 +31,14 @@ jobs:
       run: dotnet restore -s https://api.nuget.org/v3/index.json -s https://nuget.emzi0767.com/api/v3/index.json
 
     - name: Create executable of HandyHansel
-      run: dotnet publish -c Release --output ${{ env.RELEASE_PATH }}/${{ matrix.targetplatform }} --runtime ubuntu.18.04-${{ matrix.targetplatform }} -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
+      run: dotnet publish -c Release --output ${{ env.RELEASE_PATH }}/x64 --runtime ubuntu.18.04-x64 -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
       
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
       env:
         SSH_PRIVATE_KEY: ${{ secrets.USER_GITHUB_DEPLOY_PK }}
         ARGS: "-rltgoDzvO"
-        SOURCE: ${{ env.RELEASE_PATH }}/${{ matrix.targetplatform }}/HandyHansel.exe }}
+        SOURCE: ${{ env.RELEASE_PATH }}/x64/HandyHansel.exe }}
         REMOTE_HOST: ${{ secrets.LINODE_HOST_NAME }}
         REMOTE_USER: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         TARGET: ${{ secrets.TARGET }}
