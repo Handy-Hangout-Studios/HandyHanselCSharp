@@ -90,6 +90,25 @@ namespace HandyHansel.Commands
             }
         }
 
+        [Command("allTimes")]
+        public async Task AllTimesOnSystem(CommandContext context)
+        {
+            if (context.User.Username != "ProfDoof") return;
+            List<TimeZoneInfo> correctResponses = getListOfTimeZones();
+            string description = "";
+            for (int i = 0; i < correctResponses.Count; i++)
+            {
+                description += correctResponses[i].Id + (i == correctResponses.Count - 1 ? " " : "\n\n");
+            }
+            DiscordEmbed embed = new DiscordEmbedBuilder
+            {
+                Title = "All System Times",
+                Description = description,
+            };
+
+            await context.RespondAsync(embed: embed);
+        }
+
         [Command("test")]
         public async Task TestingCICD(CommandContext context)
         {
