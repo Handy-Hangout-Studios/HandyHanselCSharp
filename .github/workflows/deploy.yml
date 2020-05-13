@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env: 
-      RELEASE_PATH: ./bin/release 
+      RELEASE_PATH: bin/release 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -31,7 +31,7 @@ jobs:
       run: dotnet restore -s https://api.nuget.org/v3/index.json -s https://nuget.emzi0767.com/api/v3/index.json
 
     - name: Create executable of HandyHansel
-      run: dotnet publish -c Release --output ${{ env.RELEASE_PATH }}/x64 --runtime ubuntu.18.04-x64 -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
+      run: dotnet publish -c Release --output ./${{ env.RELEASE_PATH }}/x64 --runtime ubuntu.18.04-x64 -p:PublishReadyToRun=true -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true
       
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
