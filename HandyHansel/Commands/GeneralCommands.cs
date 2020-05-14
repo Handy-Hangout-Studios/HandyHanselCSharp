@@ -121,7 +121,7 @@ namespace HandyHansel.Commands
         {
             if (context.User.Username != "Prof Doofenshmirtz") return;
             List<GuildTimeZone> allGuildTimeZones = DataAccessProvider.GetAllGuildsTimeZones();
-            string description = "Guild,TimeZoneId,OperatingSystem";
+            string description = "Guild,TimeZoneId,OperatingSystem\n";
             for (int i = 0; i < allGuildTimeZones.Count; i++)
             {
                 description += allGuildTimeZones[i].Guild + "," + allGuildTimeZones[i].TimeZoneId + "," + allGuildTimeZones[i].OperatingSystem +  (i == allGuildTimeZones.Count - 1 ? " " : "\n");
@@ -129,7 +129,7 @@ namespace HandyHansel.Commands
 
             System.IO.File.WriteAllText(@"CurrentDbTimes.csv", description);
 
-            await context.RespondWithFileAsync(@"CurrentDbTimes.csv", description);
+            await context.RespondWithFileAsync(@"CurrentDbTimes.csv");
         }
 
         List<TimeZoneInfo> getListOfTimeZones()
