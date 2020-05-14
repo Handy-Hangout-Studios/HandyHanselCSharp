@@ -17,7 +17,7 @@ namespace HandyHansel.Commands
         public PostgreSqlContext DbContext { get;  }
         public IDataAccessProvider DataAccessProvider { get; }
 
-        GeneralCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
+        public GeneralCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
             DbContext = sqlContext;
             DataAccessProvider = dataAccessProvider;
