@@ -138,9 +138,13 @@ namespace HandyHansel.Commands
             System.Collections.ObjectModel.ReadOnlyCollection<TimeZoneInfo> allTimeZones = TimeZoneInfo.GetSystemTimeZones();
             foreach (TimeZoneInfo timezone in TimeZoneInfo.GetSystemTimeZones())
             {
-                if (timezone.Id.Equals("Central Standard Time") )
-                    timeZoneInfos.Add(timezone);
-                else if (timezone.Id.Equals("AUS Eastern Standard Time"))
+                if (timezone.Id.Equals("Central Standard Time") // Windows CST
+                 || timezone.Id.Equals("AUS Eastern Standard Time") // Windows AEST
+                 || timezone.Id.Equals("America/Chicago") // Ubuntu America/Chicago
+                 || timezone.Id.Equals("America/New York") // Ubuntu America/New York
+                 || timezone.Id.Equals("Australia/Sydney") // Ubuntu Australia/Sydney
+                 || timezone.Id.Equals("Australia/Melbourne") // Ubuntu Australia/Melbourne
+                )
                     timeZoneInfos.Add(timezone);
             }
             return timeZoneInfos;
