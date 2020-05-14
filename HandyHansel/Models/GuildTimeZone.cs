@@ -20,5 +20,6 @@ namespace HandyHansel.Models
 
         [Column("operating_system")]
         public string OperatingSystem { get; set; }
+
     }
 }
