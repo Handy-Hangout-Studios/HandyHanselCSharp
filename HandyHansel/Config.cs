@@ -2,6 +2,9 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
+using HandyHansel.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 
 namespace HandyHansel
@@ -18,9 +21,16 @@ namespace HandyHansel
                 LogLevel = LogLevel.Debug,
             };
 
+            IServiceProvider deps = new ServiceCollection()
+                                        .AddDbContext<PostgreSqlContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("POSTGRESQL_CONN_STRING")))
+                                        .AddScoped<IDataAccessProvider, DataAccessPostgreSqlProvider>()
+                                        .BuildServiceProvider();
+
             CommandsConfig = new CommandsNextConfiguration
             {
                 StringPrefixes = new string[] { "^" },
+                Services = deps,
+                EnableDms = true,
             };
 
             InteractivityConfig = new InteractivityConfiguration
