@@ -119,17 +119,24 @@ namespace HandyHansel.Commands
         [Command("currentDbTimes")]
         public async Task CurrentTimeZonesOnDb(CommandContext context)
         {
-            if (context.User.Username != "Prof Doofenshmirtz") return;
-            List<GuildTimeZone> allGuildTimeZones = DataAccessProvider.GetAllGuildsTimeZones();
-            string description = "Guild,TimeZoneId,OperatingSystem\n";
-            for (int i = 0; i < allGuildTimeZones.Count; i++)
+            try
             {
-                description += allGuildTimeZones[i].Guild + "," + allGuildTimeZones[i].TimeZoneId + "," + allGuildTimeZones[i].OperatingSystem +  (i == allGuildTimeZones.Count - 1 ? " " : "\n");
+                if (context.User.Username != "Prof Doofenshmirtz") return;
+                List<GuildTimeZone> allGuildTimeZones = DataAccessProvider.GetAllGuildsTimeZones();
+                string description = "Guild,TimeZoneId,OperatingSystem\n";
+                for (int i = 0; i < allGuildTimeZones.Count; i++)
+                {
+                    description += allGuildTimeZones[i].Guild + "," + allGuildTimeZones[i].TimeZoneId + "," + allGuildTimeZones[i].OperatingSystem + (i == allGuildTimeZones.Count - 1 ? " " : "\n");
+                }
+
+                System.IO.File.WriteAllText(@"CurrentDbTimes.csv", description);
+
+                await context.RespondWithFileAsync(@"CurrentDbTimes.csv");
             }
-
-            System.IO.File.WriteAllText(@"CurrentDbTimes.csv", description);
-
-            await context.RespondWithFileAsync(@"CurrentDbTimes.csv");
+            catch(Exception e)
+            {
+                await context.RespondAsync($"Exception Thrown: { e.ToString() }");
+            }
         }
 
         List<TimeZoneInfo> getListOfTimeZones()
