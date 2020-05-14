@@ -2,6 +2,7 @@
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using HandyHansel.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,15 @@ namespace HandyHansel.Commands
 {
     public class GeneralCommands : BaseCommandModule
     {
+        public PostgreSqlContext DbContext { get;  }
+        public IDataAccessProvider DataAccessProvider { get; }
+
+        GeneralCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
+        {
+            DbContext = sqlContext;
+            DataAccessProvider = dataAccessProvider;
+        }
+
         [Command("hi")]
         public async Task Hi(CommandContext context)
         {
@@ -106,10 +116,20 @@ namespace HandyHansel.Commands
             await context.RespondWithFileAsync(@"AllTimes.txt");
         }
 
-        [Command("test")]
-        public async Task TestingCICD(CommandContext context)
+        [Command("currentDbTimes")]
+        public async Task CurrentTimeZonesOnDb(CommandContext context)
         {
-            await context.RespondAsync($"{context.User.Mention}! It WORKED! IT WORKED! IT REALLY REALLY WORKED!");
+            if (context.User.Username != "Prof Doofenshmirtz") return;
+            List<GuildTimeZone> allGuildTimeZones = DataAccessProvider.GetAllGuildsTimeZones();
+            string description = "Guild,TimeZoneId,OperatingSystem";
+            for (int i = 0; i < allGuildTimeZones.Count; i++)
+            {
+                description += allGuildTimeZones[i].Guild + "," + allGuildTimeZones[i].TimeZoneId + "," + allGuildTimeZones[i].OperatingSystem +  (i == allGuildTimeZones.Count - 1 ? " " : "\n");
+            }
+
+            System.IO.File.WriteAllText(@"CurrentDbTimes.csv", description);
+
+            await context.RespondWithFileAsync(@"CurrentDbTimes.csv", description);
         }
 
         List<TimeZoneInfo> getListOfTimeZones()
