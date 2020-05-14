@@ -30,6 +30,7 @@ namespace HandyHansel
             //commands.RegisterCommands<DNDCommands>(); // Is currently empty and so becomes NULL during the typeof used in the DSharpPlus.CommandsNext code
             commands.RegisterCommands<GeneralCommands>();
             //commands.RegisterCommands<MinecraftCommands>(); // Is currently empty and so becomes NULL during the typeof used in the DSharpPlus.CommandsNext code
+            commands.RegisterCommands<TimeCommands>();
 
             //discord.MessageCreated += PingMessageCreated;
 
