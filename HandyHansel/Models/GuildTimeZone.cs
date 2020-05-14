@@ -6,6 +6,7 @@ using System.Text;
 
 namespace HandyHansel.Models
 {
+    [Table("all_guild_time_zones")]
     public class GuildTimeZone
     {
         [Key]
