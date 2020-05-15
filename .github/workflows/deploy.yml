@@ -34,7 +34,7 @@ jobs:
       run: dotnet publish --output ./${{ env.RELEASE_PATH }}/x64/HandyHanselDir --runtime ubuntu.18.04-x64 --source https://api.nuget.org/v3/index.json --source https://nuget.emzi0767.com/api/v3/index.json 
       
     - name: Stop old process using SSH command
-      uses: garygrossgarten/github-action-ssh@e7a42b33c0c9ad8c232eca94b1519685a3cdefb8
+      uses: garygrossgarten/github-action-ssh@v0.5.0
       with: 
         command: pkill HandyHansel
         host: ${{ secrets.LINODE_HOST_NAME }}
@@ -42,7 +42,7 @@ jobs:
         privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
         
     - name: Delete old executable using SSH command
-      uses: garygrossgarten/github-action-ssh@e7a42b33c0c9ad8c232eca94b1519685a3cdefb8
+      uses: garygrossgarten/github-action-ssh@v0.5.0
       with: 
         command: cd HandyHansel; rm -rf ./*;
         host: ${{ secrets.LINODE_HOST_NAME }}
@@ -60,7 +60,7 @@ jobs:
         TARGET: ${{ secrets.TARGET }}
         
     - name: Start new process using SSH command
-      uses: garygrossgarten/github-action-ssh@e7a42b33c0c9ad8c232eca94b1519685a3cdefb8
+      uses: garygrossgarten/github-action-ssh@v0.5.0
       with: 
         command: export BOT_TOKEN=${{ secrets.BOT_TOKEN }}; export POSTGRESQL_CONN_STRING=${{ secrets.HANDY_HANSEL_DB_CONN_STRING }}; export DEV_USER_ID=${{ secrets.DEV_USER_ID }}; cd HandyHansel/HandyHanselDir; (exec ./HandyHansel &> /dev/null &);
         host: ${{ secrets.LINODE_HOST_NAME }}
