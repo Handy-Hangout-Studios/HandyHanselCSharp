@@ -33,6 +33,9 @@ jobs:
     - name: Create executable of HandyHansel
       run: dotnet publish --output ./${{ env.RELEASE_PATH }}/x64/HandyHanselDir --runtime ubuntu.18.04-x64 --source https://api.nuget.org/v3/index.json --source https://nuget.emzi0767.com/api/v3/index.json 
       
+    - name: Debugging with tmate
+      uses: mxschmitt/action-tmate@v2
+      
     - name: Stop old process using SSH command
       uses: fifsky/ssh-action@v0.0.4
       with: 
