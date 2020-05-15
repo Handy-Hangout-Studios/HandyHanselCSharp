@@ -42,7 +42,7 @@ jobs:
         command: pkill HandyHansel
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
-        key: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
+        pass: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
         
     - name: Delete old executable using SSH command
       uses: fifsky/ssh-action@v0.0.4
@@ -50,7 +50,7 @@ jobs:
         command: cd HandyHansel; rm -rf ./*;
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
-        key: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
+        pass: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
   
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
@@ -68,4 +68,4 @@ jobs:
         command: export BOT_TOKEN=${{ secrets.BOT_TOKEN }}; export POSTGRESQL_CONN_STRING=${{ secrets.HANDY_HANSEL_DB_CONN_STRING }}; export DEV_USER_ID=${{ secrets.DEV_USER_ID }}; cd HandyHansel/HandyHanselDir; (exec ./HandyHansel &> /dev/null &);
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
-        key: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
+        pass: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
