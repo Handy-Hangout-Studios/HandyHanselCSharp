@@ -123,7 +123,7 @@ namespace HandyHansel.Commands
             catch (Exception e)
             {
                 await context.RespondAsync($"I failed to add {timeZoneId} to the timezone options for this guild.");
-                DiscordMember botDev = context.Guild.Members.First(kV => kV.Value.Id == ulong.Parse(Environment.GetEnvironmentVariable("DEV_USER_ID"))).Value;
+                DiscordMember botDev = context.Guild.Members.First(kV => kV.Key == ulong.Parse(Environment.GetEnvironmentVariable("DEV_USER_ID"))).Value;
                 await botDev.SendMessageAsync($"I had an error in {context.Guild.Name}. Here's why: {e}");
             }
         }
