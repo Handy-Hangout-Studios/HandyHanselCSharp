@@ -23,7 +23,7 @@ namespace HandyHansel.Commands
             DataAccessProvider = dataAccessProvider;
         }
 
-        [Command("hi")]
+        [Command("hi"), Description("A basic \"Hello, World!\" command for D#+")]
         public async Task Hi(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");
