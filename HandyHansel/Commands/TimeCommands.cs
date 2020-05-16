@@ -114,7 +114,6 @@ namespace HandyHansel.Commands
         {
             try
             {
-                // Builds a GuildTimeZone object and adds it into the guild time zone database.
                 string operating_system = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
                 string guild = context.Guild.Id.ToString();
                 GuildTimeZone newGuildTimeZone = new GuildTimeZone { Guild = guild, TimeZoneId = timeZoneId, OperatingSystem = operating_system};
