@@ -3,6 +3,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Enums;
 using HandyHansel.Models;
 using System;
 using System.Collections.Generic;
@@ -109,23 +110,40 @@ namespace HandyHansel.Commands
             return timeZoneInfos;
         }
 
-        [Command("addTimeZone")]
-        public async Task AddTimeZoneToDb(CommandContext context, string timeZoneId)
+        [Command("addTime")]
+        public async Task AddTimeZoneToDb(CommandContext context)
         {
             try
             {
+                InteractivityExtension interactivity = context.Client.GetInteractivity();
+
                 // Builds a GuildTimeZone object and adds it into the guild time zone database.
-                string operating_system = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-                string guild = context.Guild.Id.ToString();
-                GuildTimeZone newGuildTimeZone = new GuildTimeZone { Guild = guild, TimeZoneId = timeZoneId, OperatingSystem = operating_system};
-                DataAccessProvider.AddGuildTimeZone(newGuildTimeZone);
-                await context.RespondAsync($"I added { timeZoneId } to the timezone options for this guild.");
+                List<TimeZoneInfo> allPossibleTimes = TimeZoneInfo.GetSystemTimeZones().ToList();
+                string allPossibleTimesString = "";
+                for (int i = 0; i < allPossibleTimes.Count; i++)
+                {
+                    allPossibleTimesString += $"{i+1}. {allPossibleTimes[i].Id}\n";
+                }
+
+
+                Page[] allPossibleTimesPages = interactivity.GeneratePagesInEmbed(allPossibleTimesString, SplitType.Line);
+                _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User, allPossibleTimesPages, behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(5));
+                await context.RespondAsync($"Choose a timezone by typing: ^addTimeZone <timezone number>");
+                InteractivityResult<DiscordMessage> msg = await interactivity.WaitForMessageAsync(xm => xm.Content.StartsWith("^addTimeZone"), timeoutoverride: TimeSpan.FromMinutes(5));
+                
+                if (!msg.TimedOut)
+                {
+                    string operating_system = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+                    string guild = context.Guild.Id.ToString();
+                    string timeZoneId = allPossibleTimes[(int.Parse(msg.Result.Content.Substring("^addTimeZone".Length))-1)].Id;
+                    GuildTimeZone newGuildTimeZone = new GuildTimeZone { Guild = guild, TimeZoneId = timeZoneId, OperatingSystem = operating_system };
+                    DataAccessProvider.AddGuildTimeZone(newGuildTimeZone);
+                    await context.RespondAsync($"I added { timeZoneId } to the timezone options for this guild.");
+                } 
             }
-            catch (Exception e)
+            catch
             {
-                await context.RespondAsync($"I failed to add {timeZoneId} to the timezone options for this guild.");
-                DiscordMember botDev = context.Guild.Members.First(kV => kV.Key == ulong.Parse(Environment.GetEnvironmentVariable("DEV_USER_ID"))).Value;
-                await botDev.SendMessageAsync($"I had an error in {context.Guild.Name}. Here's why: {e}");
+                await context.RespondAsync($"I failed to add any timezone to to the timezone options for this guild.");
             }
         }
 
