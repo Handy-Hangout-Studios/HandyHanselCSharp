@@ -30,58 +30,23 @@ namespace HandyHansel.Commands
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}! What timezone do you want the time for?");
             InteractivityExtension interactivity = context.Client.GetInteractivity();
-            List<TimeZoneInfo> correctResponses = getListOfTimeZones();
-
-            IDictionary<int, DiscordEmoji> discordEmojiNumbers = new Dictionary<int, DiscordEmoji>
-                {
-                    { 0, DiscordEmoji.FromName(context.Client, ":zero:") },
-                    { 1, DiscordEmoji.FromName(context.Client, ":one:") },
-                    { 2, DiscordEmoji.FromName(context.Client, ":two:") },
-                    { 3, DiscordEmoji.FromName(context.Client, ":three:") },
-                    { 4, DiscordEmoji.FromName(context.Client, ":four:") },
-                    { 5, DiscordEmoji.FromName(context.Client, ":five:") },
-                    { 6, DiscordEmoji.FromName(context.Client, ":six:") },
-                    { 7, DiscordEmoji.FromName(context.Client, ":seven:") },
-                    { 8, DiscordEmoji.FromName(context.Client, ":eight:") },
-                    { 9, DiscordEmoji.FromName(context.Client, ":nine:") },
-                    { 10, DiscordEmoji.FromName(context.Client, ":keycap_ten:") },
-                };
-
-            discordEmojiNumbers = discordEmojiNumbers.Where(keyValuePair => keyValuePair.Key < correctResponses.Count).ToDictionary(keyValuePair => keyValuePair.Key, keyValuePair => keyValuePair.Value);
-
+            List<TimeZoneInfo> correctResponses = getListOfTimeZones(context.Guild.Id.ToString());
+            
             string description = "";
             for (int i = 0; i < correctResponses.Count; i++)
             {
-                description += discordEmojiNumbers[i].ToString() + " " + correctResponses[i].Id + (i == correctResponses.Count - 1 ? " " : "\n\n");
+                description += $"{i + 1}. {correctResponses[i].Id}\n";
             }
 
-            DiscordEmbed embed = new DiscordEmbedBuilder
-            {
-                Title = "Choose a time!",
-                Description = description,
-            };
-
-            DiscordMessage msg = await context.RespondAsync(embed: embed);
-
-            for (int i = 0; i < correctResponses.Count && discordEmojiNumbers.ContainsKey(i); i++)
-            {
-                await msg.CreateReactionAsync(discordEmojiNumbers[i]);
-            }
-
-            InteractivityResult<DSharpPlus.EventArgs.MessageReactionAddEventArgs> result =
-                await interactivity.WaitForReactionAsync(reaction =>
-                    discordEmojiNumbers.Any(keyValuePair =>
-                    {
-                        return keyValuePair.Value.Equals(reaction.Emoji) && !reaction.User.IsBot && reaction.Message.Id == msg.Id;
-                    }
-                    )
-                );
+            Page[] correctResponsesPages = interactivity.GeneratePagesInEmbed(description, SplitType.Line);
+            _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User, correctResponsesPages, behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(5));
+            await context.RespondAsync($"Choose a timezone by typing: ^time <timezone number>");
+            InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => xm.Content.StartsWith("^time"), timeoutoverride: TimeSpan.FromMinutes(5));
 
             if (!result.TimedOut)
             {
-                int discordEmojiValue = discordEmojiNumbers.First(keyValuePair => keyValuePair.Value.Equals(result.Result.Emoji)).Key;
                 DateTime currentTime = DateTime.Now;
-                TimeZoneInfo requestedTimeZone = correctResponses[discordEmojiValue];
+                TimeZoneInfo requestedTimeZone = correctResponses[(int.Parse(result.Result.Content.Substring("^time".Length)) - 1)];
                 DateTime requestedTime = TimeZoneInfo.ConvertTime(currentTime, TimeZoneInfo.Local, requestedTimeZone);
                 DiscordEmbed timeEmbed = new DiscordEmbedBuilder
                 {
@@ -92,19 +57,13 @@ namespace HandyHansel.Commands
             }
         }
 
-        List<TimeZoneInfo> getListOfTimeZones()
+        List<TimeZoneInfo> getListOfTimeZones(string guildId)
         {
             List<TimeZoneInfo> timeZoneInfos = new List<TimeZoneInfo>();
             System.Collections.ObjectModel.ReadOnlyCollection<TimeZoneInfo> allTimeZones = TimeZoneInfo.GetSystemTimeZones();
             foreach (TimeZoneInfo timezone in TimeZoneInfo.GetSystemTimeZones())
             {
-                if (timezone.Id.Equals("Central Standard Time") // Windows CST
-                 || timezone.Id.Equals("AUS Eastern Standard Time") // Windows AEST
-                 || timezone.Id.Equals("America/Chicago") // Ubuntu America/Chicago
-                 || timezone.Id.Equals("America/New York") // Ubuntu America/New York
-                 || timezone.Id.Equals("Australia/Sydney") // Ubuntu Australia/Sydney
-                 || timezone.Id.Equals("Australia/Melbourne") // Ubuntu Australia/Melbourne
-                )
+                if (DataAccessProvider.GetAllAssociatedGuildTimeZones(guildId).Select(gtz => gtz.TimeZoneId).Contains(timezone.Id))
                     timeZoneInfos.Add(timezone);
             }
             return timeZoneInfos;
@@ -125,8 +84,11 @@ namespace HandyHansel.Commands
                     allPossibleTimesString += $"{i+1}. {allPossibleTimes[i].Id}\n";
                 }
 
-
-                Page[] allPossibleTimesPages = interactivity.GeneratePagesInEmbed(allPossibleTimesString, SplitType.Line);
+                DiscordEmbedBuilder baseDiscordEmbed = new DiscordEmbedBuilder
+                {
+                    Title = "Choose a time!",
+                };
+                Page[] allPossibleTimesPages = interactivity.GeneratePagesInEmbed(allPossibleTimesString, SplitType.Line, baseDiscordEmbed);
                 _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User, allPossibleTimesPages, behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(5));
                 await context.RespondAsync($"Choose a timezone by typing: ^addTimeZone <timezone number>");
                 InteractivityResult<DiscordMessage> msg = await interactivity.WaitForMessageAsync(xm => xm.Content.StartsWith("^addTimeZone"), timeoutoverride: TimeSpan.FromMinutes(5));

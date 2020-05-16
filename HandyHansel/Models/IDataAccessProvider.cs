@@ -9,5 +9,6 @@ namespace HandyHansel.Models
         void AddGuildTimeZone(GuildTimeZone guildTimeZone);
         void DeleteGuildTimeZone(GuildTimeZone guildTimeZone);
         List<GuildTimeZone> GetAllGuildsTimeZones();
+        List<GuildTimeZone> GetAllAssociatedGuildTimeZones(string guild_id);
     }
 }

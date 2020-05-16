@@ -32,5 +32,10 @@ namespace HandyHansel.Models
         {
             return m_context.guildTimeZones.ToList();
         }
+
+        public List<GuildTimeZone> GetAllAssociatedGuildTimeZones(string guild_id)
+        {
+            return m_context.guildTimeZones.Where(gtz => gtz.Guild == guild_id).ToList();
+        }
     }
 }
