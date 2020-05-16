@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
-    [Group("time")]
+    [Group("time"), Description("All commands associated with current time functionalities.")]
     public class TimeCommands : BaseCommandModule
     {
         public PostgreSqlContext DbContext { get; }
@@ -25,7 +25,7 @@ namespace HandyHansel.Commands
             DataAccessProvider = dataAccessProvider;
         }
 
-        [GroupCommand]
+        [GroupCommand, Description("Allows a user to select a time zone and Handy Hansel will say what time it is there.")]
         public async Task ExecuteGroupAsync(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}! What timezone do you want the time for?");
@@ -69,7 +69,7 @@ namespace HandyHansel.Commands
             return timeZoneInfos;
         }
 
-        [Command("addTime")]
+        [Command("addTime"), Description("Allows a user to add a new time zone to the time zone options for the guild")]
         public async Task AddTimeZoneToDb(CommandContext context)
         {
             try
