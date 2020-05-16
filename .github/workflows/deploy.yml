@@ -48,16 +48,19 @@ jobs:
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
-  
-    - name: ssh deploy
-      uses: easingthemes/ssh-deploy@v2.1.2
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.USER_GITHUB_DEPLOY_PK_2 }}
-        ARGS: "-rltgoDzvO"
-        SOURCE: ${{ env.RELEASE_PATH }}/x64/HandyHanselDir
-        REMOTE_HOST: ${{ secrets.LINODE_HOST_NAME }}
-        REMOTE_USER: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
-        TARGET: ${{ secrets.TARGET }}
+    - name: deploy-via-scp 
+      uses: horochx/deploy-via-scp@v1.0.1
+        with:
+          # Local file path
+          local: ${{ env.RELEASE_PATH }}/x64/HandyHanselDir
+          # Remote file path
+          remote: ${{ secrets.TARGET }}
+          # Remote server address
+          host: ${{ secrets.LINODE_HOST_NAME }}
+          # Remote server user
+          user: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
+          # Remote server private key
+          key: ${{ secrets.USER_GITHUB_DEPLOY_PK_2 }}
         
     - name: Start new process using SSH command
       uses: garygrossgarten/github-action-ssh@v0.5.0
