@@ -52,7 +52,7 @@ jobs:
     - name: ssh deploy
       uses: easingthemes/ssh-deploy@v2.1.2
       env:
-        SSH_PRIVATE_KEY: ${{ secrets.USER_GITHUB_DEPLOY_PK }}
+        SSH_PRIVATE_KEY: ${{ secrets.USER_GITHUB_DEPLOY_PK_2 }}
         ARGS: "-rltgoDzvO"
         SOURCE: ${{ env.RELEASE_PATH }}/x64/HandyHanselDir
         REMOTE_HOST: ${{ secrets.LINODE_HOST_NAME }}
