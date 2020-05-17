@@ -24,11 +24,11 @@ namespace HandyHansel.Commands
         }
 
         [Command("hi"), Description("A basic \"Hello, World!\" command for D#+")]
-        public async Task Hi(CommandContext context)
+        public async Task hi(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");
             InteractivityExtension interactivity = context.Client.GetInteractivity();
-            InteractivityResult<DSharpPlus.Entities.DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => xm.Author.Id == context.User.Id && xm.Content.ToLower() == "how are you?", TimeSpan.FromMinutes(1));
+            InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => xm.Author.Id == context.User.Id && xm.Content.ToLower() == "how are you?", TimeSpan.FromMinutes(1));
             if (!result.TimedOut)
                 await context.RespondAsync($"I'm fine, thank you!");
         }
