@@ -27,7 +27,7 @@ namespace HandyHansel.Commands
             DataAccessProvider = dataAccessProvider;
         }
 
-        private static Boolean currentlyPresentingGuildTimes = false;
+        private static bool currentlyPresentingGuildTimes = false;
 
         [GroupCommand, Description("Allows a user to select a time zone and Handy Hansel will say what time it is there.")]
         public async Task ExecuteGroupAsync(CommandContext context)
@@ -60,6 +60,14 @@ namespace HandyHansel.Commands
             }
         }
 
+        /// <summary>
+        /// This presents the associated timezones asynchronously so that the rest of the code can run synchronously.
+        /// </summary>
+        /// <param name="associatedTimeZones">The list of timezones to present.</param>
+        /// <param name="interactivity">The interactivity extension to be used.</param>
+        /// <param name="channel">The DiscordChannel to present to.</param>
+        /// <param name="user">The DiscordUser to expect responses from.</param>
+        /// <returns></returns>
         private async Task PresentAssociatedTimeZones(List<TimeZoneInfo> associatedTimeZones, InteractivityExtension interactivity, DiscordChannel channel, DiscordUser user)
         {
             currentlyPresentingGuildTimes = true;
@@ -75,6 +83,11 @@ namespace HandyHansel.Commands
             currentlyPresentingGuildTimes = false;
         }
 
+        /// <summary>
+        /// Get list of all guild time zones as a list of TimeZoneInfo's that can then be used to calculate times.
+        /// </summary>
+        /// <param name="guildId">The guild id of the guild time zones we are pulling</param>
+        /// <returns>The list of Time Zone Infos associated with the passed guild id.</returns>
         List<TimeZoneInfo> getListOfTimeZones(string guildId)
         {
             List<TimeZoneInfo> timeZoneInfos = new List<TimeZoneInfo>();
@@ -87,7 +100,7 @@ namespace HandyHansel.Commands
             return timeZoneInfos;
         }
 
-        private static Boolean currentlyPresentingSystemTimes = false;
+        private static bool currentlyPresentingSystemTimes = false;
 
         [Command("addTime"), Description("Allows a user to add a new time zone to the time zone options for the guild")]
         public async Task AddTimeZoneToDb(CommandContext context)
@@ -119,6 +132,13 @@ namespace HandyHansel.Commands
             }
         }
 
+        /// <summary>
+        /// Present the system times asynchronously in an embed.
+        /// </summary>
+        /// <param name="interactivity">The interactivity extension</param>
+        /// <param name="channel">The channel to post the message in</param>
+        /// <param name="user">The user to expect input from.</param>
+        /// <returns></returns>
         private async Task PresentSystemTimes(InteractivityExtension interactivity, DiscordChannel channel, DiscordUser user)
         {
             string allPossibleTimesString = "";

@@ -7,12 +7,22 @@ namespace HandyHansel.Models
 {
     public class PostgreSqlContext : DbContext
     {
+        public PostgreSqlContext() : base()
+        {
+
+        }
+
         public PostgreSqlContext(DbContextOptions<PostgreSqlContext> options) : base(options)
         {
 
         }
 
         public DbSet<GuildTimeZone> guildTimeZones { get; set; }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseNpgsql(Environment.GetEnvironmentVariable("POSTGRESQL_CONN_STRING"));
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
