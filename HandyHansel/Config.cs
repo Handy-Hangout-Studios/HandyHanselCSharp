@@ -9,6 +9,9 @@ using System;
 
 namespace HandyHansel
 {
+    /// <summary>
+    /// An internal class used to generate the configuration information used for the myriad of different tools needed in the bot.
+    /// </summary>
     internal class Config
     {
         internal Config()

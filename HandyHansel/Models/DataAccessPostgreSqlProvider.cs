@@ -8,8 +8,15 @@ namespace HandyHansel.Models
 {
     class DataAccessPostgreSqlProvider : IDataAccessProvider
     {
+        /// <summary>
+        /// The context that allows access to the different tables in the database.
+        /// </summary>
         private readonly PostgreSqlContext m_context;
 
+        /// <summary>
+        /// Creates a DataAccessPostgreSqlProvider for use by the programmer
+        /// </summary>
+        /// <param name="context">The PostgreSqlContext to use for this Provider</param>
         public DataAccessPostgreSqlProvider(PostgreSqlContext context)
         {
             m_context = context;
