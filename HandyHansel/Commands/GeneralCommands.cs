@@ -4,22 +4,16 @@ using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using HandyHansel.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
     public class GeneralCommands : BaseCommandModule
     {
-        public PostgreSqlContext DbContext { get;  }
-        public IDataAccessProvider DataAccessProvider { get; }
+        private IDataAccessProvider DataAccessProvider { get; }
 
         public GeneralCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
-            DbContext = sqlContext;
             DataAccessProvider = dataAccessProvider;
         }
 

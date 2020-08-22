@@ -17,7 +17,10 @@ namespace HandyHansel.Models
 
         }
 
-        public DbSet<GuildTimeZone> guildTimeZones { get; set; }
+        public DbSet<GuildTimeZone> GuildTimeZones { get; private set; }
+        public DbSet<GuildEvent> GuildEvents { get; private set; }
+        
+        public DbSet<ScheduledEvent> ScheduledEvents { get; private set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

@@ -27,8 +27,22 @@ namespace HandyHansel.Models
         /// <summary>
         /// Get every guild time zone that is associated with a specified guild using the guild id.
         /// </summary>
-        /// <param name="guild_id">The guild id that the time zones should be associated with</param>
+        /// <param name="guildId">The guild id that the time zones should be associated with</param>
         /// <returns>List of guild time zones</returns>
-        List<GuildTimeZone> GetAllAssociatedGuildTimeZones(string guild_id);
+        List<GuildTimeZone> GetAllAssociatedGuildTimeZones(ulong guildId);
+        
+        void AddGuildEvent(GuildEvent guildEvent);
+
+        void DeleteGuildEvent(GuildEvent guildEvent);
+
+        List<GuildEvent> GetAllAssociatedGuildEvents(ulong guildId);
+
+        void AddScheduledEvent(ScheduledEvent scheduledEvent);
+
+        void DeleteScheduledEvent(ScheduledEvent scheduledEvent);
+
+        List<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId);
+
+        List<ScheduledEvent> GetAllPastScheduledEvents();
     }
 }

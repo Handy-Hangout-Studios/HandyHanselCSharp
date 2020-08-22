@@ -21,16 +21,14 @@ namespace HandyHansel.Commands
 
         // Singleton of systemTimeZonePages
         private Page[] _systemTimeZonePages = null;
-
         private IEnumerable<Page> GetSystemTimeZonePages(InteractivityExtension interactivity)
         {
-            // If the singleton is not null then we should just return it.
             if (!(_systemTimeZonePages is null)) return _systemTimeZonePages;
 
-            string allPossibleTimesString = "";
+            StringBuilder allPossibleTimesStringBuilder = new StringBuilder();
             for (int i = 0; i < _systemTimeZones.Count; i++)
             {
-                allPossibleTimesString += $"{i + 1}. {_systemTimeZones[i].Id}\n";
+                allPossibleTimesStringBuilder.AppendLine($"{i + 1}. {_systemTimeZones[i].Id}");
             }
 
             DiscordEmbedBuilder baseDiscordEmbed = new DiscordEmbedBuilder
@@ -39,40 +37,30 @@ namespace HandyHansel.Commands
             };
 
             _systemTimeZonePages =
-                interactivity.GeneratePagesInEmbed(allPossibleTimesString, SplitType.Line, baseDiscordEmbed);
+                interactivity.GeneratePagesInEmbed(allPossibleTimesStringBuilder.ToString(), SplitType.Line, baseDiscordEmbed);
 
             return _systemTimeZonePages;
         }
-
-        // Singleton map of Guild Time Zone Infos
         
-        
-        // Singleton map of Guild Times
-        private readonly Dictionary<ulong, Page[]> _guildTimeZonePages;
-
         private IEnumerable<Page> GetGuildTimeZonePages(ulong guildId, InteractivityExtension interactivity)
         {
-            if (_guildTimeZonePages.ContainsKey(guildId)) return _guildTimeZonePages[guildId];
-            string description = "";
+            StringBuilder stringBuilder = new StringBuilder();
             int count = 1;
-            List<string> guildAssociatedTimeZones = DataAccessProvider.GetAllAssociatedGuildTimeZones(guildId.ToString()).Select(gtz => gtz.TimeZoneId).ToList();
+            List<string> guildAssociatedTimeZones = DataAccessProvider.GetAllAssociatedGuildTimeZones(guildId).Select(gtz => gtz.TimeZoneId).ToList();
             foreach (TimeZoneInfo timezone in _systemTimeZones.Where(timezone => guildAssociatedTimeZones.Contains(timezone.Id)))
             {
-                description += $"{count}. {timezone.Id}\n";
+                stringBuilder.AppendLine($"{count}. {timezone.Id}");
                 count++;
             }
             
-            _guildTimeZonePages[guildId] = interactivity.GeneratePagesInEmbed(description, SplitType.Line);
-            return _guildTimeZonePages[guildId];
+            return interactivity.GeneratePagesInEmbed(stringBuilder.ToString(), SplitType.Line);;
         }
-        
 
         private IDataAccessProvider DataAccessProvider { get; }
 
         public TimeCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
             DataAccessProvider = dataAccessProvider;
-            _guildTimeZonePages = new Dictionary<ulong, Page[]>();
         }
 
         [GroupCommand, Description("Allows a user to select a time zone and Handy Hansel will say what time it is there.")]
@@ -80,9 +68,9 @@ namespace HandyHansel.Commands
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}! What timezone do you want the time for?");
             InteractivityExtension interactivity = context.Client.GetInteractivity();
-            _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User, GetGuildTimeZonePages(context.Guild.Id, interactivity), behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(5));
+            _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User, GetGuildTimeZonePages(context.Guild.Id, interactivity), behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
             await context.RespondAsync($"Choose a timezone by typing: <timezone number>");
-            InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User), timeoutoverride: TimeSpan.FromMinutes(5));
+            InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User), timeoutoverride: TimeSpan.FromMinutes(1));
 
             if (!result.TimedOut)
             {
@@ -108,7 +96,7 @@ namespace HandyHansel.Commands
         List<TimeZoneInfo> GetListOfTimeZones(ulong guildId)
         {
             List<TimeZoneInfo> timeZoneInfos = new List<TimeZoneInfo>();
-            List<string> guildAssociatedTimeZones = DataAccessProvider.GetAllAssociatedGuildTimeZones(guildId.ToString()).Select(gtz => gtz.TimeZoneId).ToList();
+            List<string> guildAssociatedTimeZones = DataAccessProvider.GetAllAssociatedGuildTimeZones(guildId).Select(gtz => gtz.TimeZoneId).ToList();
             foreach (TimeZoneInfo timezone in _systemTimeZones)
             {
                 if (guildAssociatedTimeZones.Contains(timezone.Id))
@@ -131,7 +119,7 @@ namespace HandyHansel.Commands
                 if (!msg.TimedOut)
                 {
                     string operatingSystem = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-                    string guild = context.Guild.Id.ToString();
+                    ulong guild = context.Guild.Id;
                     string timeZoneId = _systemTimeZones[(int.Parse(msg.Result.Content)-1)].Id;
                     GuildTimeZone newGuildTimeZone = new GuildTimeZone { Guild = guild, TimeZoneId = timeZoneId, OperatingSystem = operatingSystem };
                     DataAccessProvider.AddGuildTimeZone(newGuildTimeZone);
