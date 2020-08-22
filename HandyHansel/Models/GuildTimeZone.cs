@@ -14,7 +14,7 @@ namespace HandyHansel.Models
         public int Id { get; set;  }
 
         [Column("guild")]
-        public string Guild { get; set; }
+        public ulong Guild { get; set; }
         
         [Column("timezone_id")]
         public string TimeZoneId { get; set; }
