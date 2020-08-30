@@ -17,7 +17,7 @@ namespace HandyHansel.Models
 
         }
 
-        public DbSet<GuildTimeZone> GuildTimeZones { get; private set; }
+        public DbSet<UserTimeZone> UserTimeZones { get; private set; }
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         
         public DbSet<ScheduledEvent> ScheduledEvents { get; private set; }

@@ -13,7 +13,7 @@ using HandyHansel.Models;
 
 namespace HandyHansel.Commands
 {
-    [Group("event"), Description("Randomly choose an event")]
+    [Group("event"), Description("The event functionality's submodule.")]
     public class EventCommands : BaseCommandModule
     {
         private static readonly Random _random = new Random();
@@ -24,7 +24,7 @@ namespace HandyHansel.Commands
             DataAccessProvider = dataAccessProvider;
         }
 
-        [GroupCommand]
+        [GroupCommand, Description("Randomly choose an event!")]
         public async Task ExecuteGroupAsync(CommandContext context)
         {
             List<GuildEvent> guildEvents = DataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id);
@@ -36,7 +36,8 @@ namespace HandyHansel.Commands
             await context.RespondAsync(embed: eventEmbedBuilder.Build());
         }
 
-        [Command("schedule")]
+        // TODO: This needs to start using the user timezone for scheduling so that user's think about the UTC timezone less.
+        [Command("schedule"), RequireUserPermissions(Permissions.Administrator), Description("Schedule an event for the time passed in.")]
         public async Task ScheduleGuildEvent(CommandContext context, DateTime datetime)
         {
             DiscordMessage msg = await context.RespondAsync(
@@ -77,9 +78,23 @@ namespace HandyHansel.Commands
             };
 
             DataAccessProvider.AddScheduledEvent(newEvent);
+
+            await context.RespondAsync($"You have scheduled the following event for {datetime.ToString("g")}");
+            DiscordEmbed embed = new DiscordEmbedBuilder()
+            {
+                Author = new DiscordEmbedBuilder.EmbedAuthor()
+                {
+                    IconUrl = context.Client.CurrentUser.AvatarUrl,
+                    Name = context.Client.CurrentUser.Username,
+                },
+                Description = selectedEvent.EventDesc,
+                Title = selectedEvent.EventName,
+            }.Build();
+
+            await context.RespondAsync(embed: embed);
         }
 
-        [Command("add")]
+        [Command("add"), RequireUserPermissions(Permissions.Administrator), Description("Starts the set-up process for a new event to be added to the guild events for this server.")]
         public async Task AddGuildEvent(CommandContext context)
         {
             DiscordMessage msg = await context.RespondAsync($":wave: Hi, {context.User.Mention}! You wanted to create a new event?");
@@ -121,7 +136,7 @@ namespace HandyHansel.Commands
             DataAccessProvider.AddGuildEvent(newEvent);
         }
 
-        [Command("remove")]
+        [Command("remove"), RequireUserPermissions(Permissions.Administrator), Description("Removes an event from the guild's events.")]
         public async Task RemoveGuildEvent(CommandContext context)
         {
             DiscordMessage msg = await context.RespondAsync(
@@ -158,7 +173,7 @@ namespace HandyHansel.Commands
             DataAccessProvider.DeleteGuildEvent(selectedEvent);
         }
 
-        [Command("show"), RequireUserPermissions(Permissions.Administrator)]
+        [Command("show"), RequireUserPermissions(Permissions.Administrator), Description("Shows a listing of all events currently available for this guild.")]
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,

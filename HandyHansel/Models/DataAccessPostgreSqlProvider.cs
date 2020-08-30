@@ -23,29 +23,35 @@ namespace HandyHansel.Models
             m_context = context;
         }
 
-        #region GuildTimeZones
+        #region UserTimeZones
 
-        public void AddGuildTimeZone(GuildTimeZone guildTimeZone)
+        public void AddUserTimeZone(UserTimeZone userTimeZone)
         {
-            m_context.GuildTimeZones.Add(guildTimeZone);
+            m_context.UserTimeZones.Add(userTimeZone);
             m_context.SaveChanges();
         }
 
-        public void DeleteGuildTimeZone(GuildTimeZone guildTimeZone)
+        public void UpdateUserTimeZone(UserTimeZone userTimeZone)
         {
-            GuildTimeZone entity = m_context.GuildTimeZones.First(e => e.Guild == guildTimeZone.Guild && e.TimeZoneId == guildTimeZone.TimeZoneId);
-            m_context.GuildTimeZones.Remove(entity);
+            m_context.UserTimeZones.Update(userTimeZone);
             m_context.SaveChanges();
         }
 
-        public List<GuildTimeZone> GetAllGuildsTimeZones()
+        public void DeleteUserTimeZone(UserTimeZone userTimeZone)
         {
-            return m_context.GuildTimeZones.ToList();
+            UserTimeZone entity = m_context.UserTimeZones.First(e => e.UserId == userTimeZone.UserId);
+            m_context.UserTimeZones.Remove(entity);
+            m_context.SaveChanges();
         }
 
-        public List<GuildTimeZone> GetAllAssociatedGuildTimeZones(ulong guildId)
+        public List<UserTimeZone> GetUserTimeZones()
         {
-            return m_context.GuildTimeZones.Where(gtz => gtz.Guild == guildId).ToList();
+            return m_context.UserTimeZones.ToList();
+        }
+
+        public UserTimeZone GetUsersTimeZone(ulong userId)
+        {
+            return m_context.UserTimeZones.FirstOrDefault(utz => utz.UserId == userId);
         }
 
         #endregion

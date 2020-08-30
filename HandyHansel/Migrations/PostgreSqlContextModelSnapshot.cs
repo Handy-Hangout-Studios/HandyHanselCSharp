@@ -44,31 +44,6 @@ namespace HandyHansel.Migrations
                     b.ToTable("all_guild_events");
                 });
 
-            modelBuilder.Entity("HandyHansel.Models.GuildTimeZone", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .UseIdentityByDefaultColumn();
-
-                    b.Property<decimal>("Guild")
-                        .HasColumnType("numeric(20,0)")
-                        .HasColumnName("guild");
-
-                    b.Property<string>("OperatingSystem")
-                        .HasColumnType("text")
-                        .HasColumnName("operating_system");
-
-                    b.Property<string>("TimeZoneId")
-                        .HasColumnType("text")
-                        .HasColumnName("timezone_id");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("all_guild_time_zones");
-                });
-
             modelBuilder.Entity("HandyHansel.Models.ScheduledEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -94,6 +69,31 @@ namespace HandyHansel.Migrations
                     b.HasIndex("GuildEventId");
 
                     b.ToTable("all_guild_scheduled_events");
+                });
+
+            modelBuilder.Entity("HandyHansel.Models.UserTimeZone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id")
+                        .UseIdentityByDefaultColumn();
+
+                    b.Property<string>("OperatingSystem")
+                        .HasColumnType("text")
+                        .HasColumnName("operating_system");
+
+                    b.Property<string>("TimeZoneId")
+                        .HasColumnType("text")
+                        .HasColumnName("timezone_id");
+
+                    b.Property<decimal>("UserId")
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("all_user_time_zones");
                 });
 
             modelBuilder.Entity("HandyHansel.Models.ScheduledEvent", b =>
