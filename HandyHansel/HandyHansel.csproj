@@ -10,12 +10,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00699" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00699" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00699" />
-    <PackageReference Include="DSharpPlus.Lavalink" Version="4.0.0-nightly-00699" />
-    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0-nightly-00699" />
-    <PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-nightly-00699" />
+    <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00719" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00719" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00719" />
+    <PackageReference Include="DSharpPlus.Lavalink" Version="4.0.0-nightly-00719" />
+    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0-nightly-00719" />
+    <PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-nightly-00719" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0-preview.7.20365.15" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.0-preview.7.20365.15">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,6 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Recognizers.Text.DateTime" Version="1.4.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.0-preview7" />
     <PackageReference Include="Quartz" Version="3.1.0" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.1.0" />

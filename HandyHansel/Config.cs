@@ -6,6 +6,7 @@ using HandyHansel.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace HandyHansel
 {
@@ -20,8 +21,7 @@ namespace HandyHansel
             {
                 Token = Environment.GetEnvironmentVariable("BOT_TOKEN"),
                 TokenType = TokenType.Bot,
-                UseInternalLogHandler = true,
-                LogLevel = LogLevel.Debug,
+                MinimumLogLevel = LogLevel.Information
             };
 
             IServiceProvider deps = new ServiceCollection()
