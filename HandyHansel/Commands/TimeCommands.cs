@@ -1,29 +1,27 @@
-﻿using DSharpPlus;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
-using DSharpPlus.Interactivity.Enums;
 using HandyHansel.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
     [Group("time"), Description("All commands associated with current time functionality.")]
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class TimeCommands : BaseCommandModule
     {
         private IDataAccessProvider DataAccessProvider { get; }
 
+        // ReSharper disable once UnusedParameter.Local
         public TimeCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
             DataAccessProvider = dataAccessProvider;
         }
 
         [GroupCommand, Description("Perform initial set-up of user's timezone.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
             await context.RespondAsync(
@@ -33,7 +31,7 @@ namespace HandyHansel.Commands
                 
             if (!result.TimedOut && Program.SystemTimeZones.ContainsKey(result.Result.Content))
             {
-                UserTimeZone newUserTimeZone = new UserTimeZone()
+                UserTimeZone newUserTimeZone = new UserTimeZone
                 {
                     UserId = context.Message.Author.Id, 
                     TimeZoneId = result.Result.Content, 
@@ -50,6 +48,7 @@ namespace HandyHansel.Commands
         }
 
         [Command("update"), Description("Perform a time zone update process for the user who called update.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task UpdateTimeZone(CommandContext context)
         {
             

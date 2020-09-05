@@ -1,12 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HandyHansel.Models
 {
     public class PostgreSqlContext : DbContext
     {
+        // ReSharper disable once RedundantBaseConstructorCall
         public PostgreSqlContext() : base()
         {
 
@@ -17,9 +16,12 @@ namespace HandyHansel.Models
 
         }
 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public DbSet<UserTimeZone> UserTimeZones { get; private set; }
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         
+        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public DbSet<ScheduledEvent> ScheduledEvents { get; private set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

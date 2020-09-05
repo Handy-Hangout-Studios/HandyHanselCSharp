@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace HandyHansel.Models
 {
@@ -49,6 +47,6 @@ namespace HandyHansel.Models
 
         List<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId);
 
-        List<ScheduledEvent> GetAllPastScheduledEvents();
+        IEnumerable<ScheduledEvent> GetAllPastScheduledEvents();
     }
 }

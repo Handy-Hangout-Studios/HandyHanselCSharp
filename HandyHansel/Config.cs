@@ -21,17 +21,17 @@ namespace HandyHansel
             {
                 Token = Environment.GetEnvironmentVariable("BOT_TOKEN"),
                 TokenType = TokenType.Bot,
-                MinimumLogLevel = LogLevel.Information
+                MinimumLogLevel = LogLevel.Information,
             };
 
             IServiceProvider deps = new ServiceCollection()
-                                        .AddDbContext<PostgreSqlContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("POSTGRESQL_CONN_STRING")))
+                                        .AddDbContext<PostgreSqlContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("POSTGRESQL_CONN_STRING")!))
                                         .AddScoped<IDataAccessProvider, DataAccessPostgreSqlProvider>()
                                         .BuildServiceProvider();
 
             CommandsConfig = new CommandsNextConfiguration
             {
-                StringPrefixes = new string[] { "^" },
+                StringPrefixes = new[] { "^" },
                 Services = deps,
                 EnableDms = true,
             };
@@ -43,8 +43,8 @@ namespace HandyHansel
             };
         }
 
-        internal DiscordConfiguration ClientConfig { get; set; }
-        internal CommandsNextConfiguration CommandsConfig { get; set; }
-        internal InteractivityConfiguration InteractivityConfig { get; set; }
+        internal DiscordConfiguration ClientConfig { get; }
+        internal CommandsNextConfiguration CommandsConfig { get; }
+        internal InteractivityConfiguration InteractivityConfig { get; }
     }
 }

@@ -8,23 +8,23 @@ using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class GeneralCommands : BaseCommandModule
     {
-        private IDataAccessProvider DataAccessProvider { get; }
-
+        // ReSharper disable twice UnusedParameter.Local
         public GeneralCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
-            DataAccessProvider = dataAccessProvider;
         }
 
         [Command("hi"), Description("A basic \"Hello, World!\" command for D#+")]
-        public async Task hi(CommandContext context)
+        // ReSharper disable once UnusedMember.Global
+        public async Task Hi(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");
             InteractivityExtension interactivity = context.Client.GetInteractivity();
             InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(xm => xm.Author.Id == context.User.Id && xm.Content.ToLower() == "how are you?", TimeSpan.FromMinutes(1));
             if (!result.TimedOut)
-                await context.RespondAsync($"I'm fine, thank you!");
+                await context.RespondAsync("I'm fine, thank you!");
         }
     }
 }

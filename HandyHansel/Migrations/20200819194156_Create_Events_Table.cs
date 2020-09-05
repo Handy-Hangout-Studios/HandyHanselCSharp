@@ -3,6 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace HandyHansel.Migrations
 {
+    // ReSharper disable once InconsistentNaming
     public partial class Create_Events_Table : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

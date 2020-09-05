@@ -14,21 +14,24 @@ using HandyHansel.Models;
 namespace HandyHansel.Commands
 {
     [Group("event"), Description("The event functionality's submodule.")]
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class EventCommands : BaseCommandModule
     {
-        private static readonly Random _random = new Random();
+        private static readonly Random Random = new Random();
         private IDataAccessProvider DataAccessProvider { get; }
 
+        // ReSharper disable once UnusedParameter.Local
         public EventCommands(PostgreSqlContext sqlContext, IDataAccessProvider dataAccessProvider)
         {
             DataAccessProvider = dataAccessProvider;
         }
 
         [GroupCommand, Description("Randomly choose an event!")]
+        // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
             List<GuildEvent> guildEvents = DataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id);
-            GuildEvent selectedEvent = guildEvents[_random.Next(guildEvents.Count)];
+            GuildEvent selectedEvent = guildEvents[Random.Next(guildEvents.Count)];
             DiscordEmbedBuilder eventEmbedBuilder = new DiscordEmbedBuilder();
             eventEmbedBuilder
                 .WithTitle(selectedEvent.EventName)
@@ -38,10 +41,11 @@ namespace HandyHansel.Commands
 
         // TODO: This needs to start using the user timezone for scheduling so that user's think about the UTC timezone less.
         [Command("schedule"), RequireUserPermissions(Permissions.Administrator), Description("Schedule an event for the time passed in.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task ScheduleGuildEvent(CommandContext context, DateTime datetime)
         {
             DiscordMessage msg = await context.RespondAsync(
-                $":wave: Hi, {context.User.Mention}! You want to schedule an event for {datetime.ToString("g")} UTC?");
+                $":wave: Hi, {context.User.Mention}! You want to schedule an event for {datetime:g} UTC?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_n:"));
             InteractivityExtension interactivity = context.Client.GetInteractivity();
@@ -63,14 +67,14 @@ namespace HandyHansel.Commands
 
             InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
-                timeoutoverride: TimeSpan.FromMinutes(1));
+                TimeSpan.FromMinutes(1));
 
             if (result.TimedOut) return;
 
             GuildEvent selectedEvent =
                 DataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id)[
-                    (int.Parse(result.Result.Content) - 1)];
-            ScheduledEvent newEvent = new ScheduledEvent()
+                    int.Parse(result.Result.Content) - 1];
+            ScheduledEvent newEvent = new ScheduledEvent
             {
                 GuildEventId = selectedEvent.Id,
                 ScheduledDate = datetime,
@@ -79,10 +83,10 @@ namespace HandyHansel.Commands
 
             DataAccessProvider.AddScheduledEvent(newEvent);
 
-            await context.RespondAsync($"You have scheduled the following event for {datetime.ToString("g")}");
-            DiscordEmbed embed = new DiscordEmbedBuilder()
+            await context.RespondAsync($"You have scheduled the following event for {datetime:g}");
+            DiscordEmbed embed = new DiscordEmbedBuilder
             {
-                Author = new DiscordEmbedBuilder.EmbedAuthor()
+                Author = new DiscordEmbedBuilder.EmbedAuthor
                 {
                     IconUrl = context.Client.CurrentUser.AvatarUrl,
                     Name = context.Client.CurrentUser.Username,
@@ -95,6 +99,7 @@ namespace HandyHansel.Commands
         }
 
         [Command("add"), RequireUserPermissions(Permissions.Administrator), Description("Starts the set-up process for a new event to be added to the guild events for this server.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task AddGuildEvent(CommandContext context)
         {
             DiscordMessage msg = await context.RespondAsync($":wave: Hi, {context.User.Mention}! You wanted to create a new event?");
@@ -126,7 +131,7 @@ namespace HandyHansel.Commands
 
             string eventDesc = result.Result.Content;
 
-            GuildEvent newEvent = new GuildEvent()
+            GuildEvent newEvent = new GuildEvent
             {
                 EventName = eventName,
                 EventDesc = eventDesc,
@@ -137,6 +142,7 @@ namespace HandyHansel.Commands
         }
 
         [Command("remove"), RequireUserPermissions(Permissions.Administrator), Description("Removes an event from the guild's events.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task RemoveGuildEvent(CommandContext context)
         {
             DiscordMessage msg = await context.RespondAsync(
@@ -162,25 +168,26 @@ namespace HandyHansel.Commands
 
             InteractivityResult<DiscordMessage> result = await interactivity.WaitForMessageAsync(
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
-                timeoutoverride: TimeSpan.FromMinutes(1));
+                TimeSpan.FromMinutes(1));
 
             if (result.TimedOut) return;
 
             GuildEvent selectedEvent =
                 DataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id)[
-                    (int.Parse(result.Result.Content) - 1)];
+                    int.Parse(result.Result.Content) - 1];
             
             DataAccessProvider.DeleteGuildEvent(selectedEvent);
         }
 
         [Command("show"), RequireUserPermissions(Permissions.Administrator), Description("Shows a listing of all events currently available for this guild.")]
+        // ReSharper disable once UnusedMember.Global
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
                 GetGuildEventsPages(context.Guild.Id, context.Client.GetInteractivity()),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
         }
-        private Page[] GetGuildEventsPages(ulong guildId, InteractivityExtension interactivity)
+        private IEnumerable<Page> GetGuildEventsPages(ulong guildId, InteractivityExtension interactivity)
         {
             StringBuilder guildEventsStringBuilder = new StringBuilder();
             
@@ -190,6 +197,7 @@ namespace HandyHansel.Commands
             foreach (GuildEvent guildEvent in guildEvents)
             {
                 guildEventsStringBuilder.AppendLine($"{count}. {guildEvent.EventName}");
+                count++;
             }
 
             return interactivity.GeneratePagesInEmbed(guildEventsStringBuilder.ToString(), SplitType.Line);
