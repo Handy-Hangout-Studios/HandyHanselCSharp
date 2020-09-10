@@ -188,7 +188,14 @@ namespace HandyHansel
                         .AddField("Poster's Time", $"\"{parsedText}\"")
                         .AddField("Your time", $"{reactorsTime:t}");
 
-                    await reactor.SendMessageAsync(embed: reactorTimeEmbed);
+                    try
+                    {
+                        await reactor.SendMessageAsync(embed: reactorTimeEmbed);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
+                    }
                 }
             }
         }
