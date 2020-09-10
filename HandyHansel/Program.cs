@@ -11,9 +11,6 @@ using DSharpPlus.Interactivity;
 using HandyHansel.Commands;
 using HandyHansel.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Recognizers.Text;
-using Microsoft.Recognizers.Text.DataTypes.TimexExpression;
-using Microsoft.Recognizers.Text.DateTime;
 
 namespace HandyHansel
 {
@@ -24,6 +21,7 @@ namespace HandyHansel
         private static CommandsNextExtension _commands;
         // ReSharper disable once NotAccessedField.Local
         private static InteractivityExtension _interactivity;
+        public static ILogger Logger;
 
         public static readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
         
@@ -36,123 +34,161 @@ namespace HandyHansel
         {
             Config config = new Config();
             _discord = new DiscordClient(config.ClientConfig);
+            Logger = _discord.Logger;
             _commands = _discord.UseCommandsNext(config.CommandsConfig);
             _interactivity = _discord.UseInteractivity(config.InteractivityConfig);
 
-            //commands.RegisterCommands<DNDCommands>(); // Is currently empty and so becomes NULL during the typeof used in the DSharpPlus.CommandsNext code
             _commands.RegisterCommands<GeneralCommands>();
-            //commands.RegisterCommands<MinecraftCommands>(); // Is currently empty and so becomes NULL during the typeof used in the DSharpPlus.CommandsNext code
             _commands.RegisterCommands<TimeCommands>();
             _commands.RegisterCommands<EventCommands>();
+            _commands.RegisterCommands<PrefixCommands>();
 
             _discord.MessageCreated += CheckForDate;
             _discord.MessageReactionAdded += SendAdjustedDate;
+            _discord.Ready += StartTimer;
 
-            StartTimer();
             await _discord.ConnectAsync();
             await Task.Delay(-1);
         }
 
-        private static void StartTimer()
+        private static async Task StartTimer(ReadyEventArgs args)
         {
             SetTimer();
             _discord.Logger.Log(LogLevel.Information, "Timer", "Timer has been started", DateTime.Now);
+            await Task.FromResult(0);
         }
         private static void SetTimer()
         {
             _eventTimer = new Timer(6000);
-            _eventTimer.Elapsed += OnTimedEvent;
+            _eventTimer.Elapsed += CheckForScheduledEvents;
             _eventTimer.AutoReset = true;
             _eventTimer.Enabled = true;
         }
-
-        private static async void OnTimedEvent(object source, ElapsedEventArgs e)
+    
+        
+        private static readonly HashSet<int> TenMinuteNotified = new HashSet<int>();
+        private static async void CheckForScheduledEvents(object source, ElapsedEventArgs e)
         {
+            using IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
             _discord.Logger.Log(LogLevel.Information, "Timer", "Timer event fired", DateTime.Now);
-            IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
             IEnumerable<ScheduledEvent> allScheduledEvents = database.GetAllPastScheduledEvents();
             foreach (ScheduledEvent se in allScheduledEvents)
             {
-                database.DeleteScheduledEvent(se);
+                lock (TenMinuteNotified)
+                {
+                    TenMinuteNotified.Remove(se.Id);
+                }
+                database.SetEventAnnounced(se);
                 DiscordChannel channel = await _discord.GetChannelAsync(se.ChannelId);
-                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}", DateTime.Now);
+                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}",
+                    DateTime.Now);
                 DiscordEmbed embed = new DiscordEmbedBuilder()
                     .WithTitle(se.Event.EventName)
                     .WithAuthor(_discord.CurrentUser.Username, iconUrl: _discord.CurrentUser.AvatarUrl)
                     .WithDescription(se.Event.EventDesc)
                     .Build();
-                
+                await _discord.SendMessageAsync(channel, "@everyone, this event is starting now!");
+                await _discord.SendMessageAsync(channel, embed: embed);
+            }
+
+            database.SaveAnnouncedEvents();
+
+            List<ScheduledEvent> allUpcomingScheduledEvents =
+                database.GetAllPastScheduledEvents(TimeSpan.FromMinutes(10)).ToList();
+            lock (TenMinuteNotified)
+            {
+                allUpcomingScheduledEvents = allUpcomingScheduledEvents.Where(scheduledEvent =>
+                    !TenMinuteNotified.Contains(scheduledEvent.Id)).ToList();
+
+                foreach (ScheduledEvent scheduledEvent in allUpcomingScheduledEvents)
+                {
+                    TenMinuteNotified.Add(scheduledEvent.Id);
+                }
+            }
+            
+            foreach (ScheduledEvent se in allUpcomingScheduledEvents)
+            {
+                DiscordChannel channel = await _discord.GetChannelAsync(se.ChannelId);
+                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}",
+                    DateTime.Now);
+                DiscordEmbed embed = new DiscordEmbedBuilder()
+                    .WithTitle(se.Event.EventName)
+                    .WithAuthor(_discord.CurrentUser.Username, iconUrl: _discord.CurrentUser.AvatarUrl)
+                    .WithDescription(se.Event.EventDesc)
+                    .Build();
+                await _discord.SendMessageAsync(channel, "@everyone, this event is starting in 10 minutes!");
                 await _discord.SendMessageAsync(channel, embed: embed);
             }
         }
 
         private static DiscordEmoji _clock;
-        private static DiscordEmoji Clock()
+        private static DiscordEmoji SetClock()
         {
             return _clock ??= DiscordEmoji.FromName(_discord, ":clock:");
         }
+        private static DiscordEmoji Clock => _clock ?? SetClock();
+        
+        private static Parser _timeParser;
+        private static Parser SetTimeParser()
+        {
+            return _timeParser ??= new Parser(Parser.ParserType.Time);
+        }
+        private static Parser TimeParser => _timeParser ?? SetTimeParser();
+        
         private static async Task CheckForDate(MessageCreateEventArgs e)
         {
-            List<ModelResult> dateTimeList =
-                DateTimeRecognizer.RecognizeDateTime(e.Message.Content, Culture.English);
+            if (e.Author.IsBot) return;
             
-            if (dateTimeList.Count > 0 &&
-                dateTimeList.Any(elem => elem.TypeName.EndsWith("time") || elem.TypeName.EndsWith("date")))
+            IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(e.Message.Content);
+
+            if (parserList.Count() != 0)
             {
-                await e.Message.CreateReactionAsync(Clock());
+                await e.Message.CreateReactionAsync(Clock);
             }
         }
         private static async Task SendAdjustedDate(MessageReactionAddEventArgs e)
         {
             if (e.User.IsBot) return;
             
-            IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
-            if (e.Emoji.Equals(Clock()))
+            using IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            if (e.Emoji.Equals(Clock))
             {
-                List<ModelResult> dateTimeList =
-                    DateTimeRecognizer.RecognizeDateTime(e.Message.Content, Culture.English);
-                foreach (ModelResult modelResult in dateTimeList)
+                DiscordChannel channel = await _discord.GetChannelAsync(e.Channel.Id);
+                DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
+                IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(msg.Content);
+                foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element => element.Item2 > DateTime.Now))
                 {
-                    if (!modelResult.TypeName.Equals("datetimeV2.time")) continue;
-                    IEnumerable<KeyValuePair<string, object>> result = modelResult.Resolution;
-                    foreach (KeyValuePair<string, object> pair in result)
+                    DiscordMember reactor = (DiscordMember) e.User;
+                    string opTimeZoneId = database.GetUsersTimeZone(msg.Author.Id)?.TimeZoneId;
+                    string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId;
+                    if (opTimeZoneId is null)
                     {
-                        List<Dictionary<string, string>> nextResult = (List<Dictionary<string, string>>) pair.Value;
-                        foreach (Dictionary<string, string> dict in nextResult)
-                        {
-                            DiscordMember reactor = (DiscordMember) e.User;
-                            TimexProperty parsed = new TimexProperty(dict["timex"]);
-                            DateTime time = new DateTime(2000, 1, 1, parsed.Hour ?? 1, parsed.Minute ?? 1, 1);
-                            string opTimeZoneId = database.GetUsersTimeZone(e.Message.Author.Id)?.TimeZoneId;
-                            string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId;
-                            if (opTimeZoneId is null)
-                            {
-                                await reactor.SendMessageAsync("The original poster has not set up a time zone yet.");
-                                return;
-                            }
-                            if (reactorTimeZoneId is null)
-                            {
-                                await reactor.SendMessageAsync("You have not set up a time zone yet.");
-                                return;
-                            }
-
-                            if (!SystemTimeZones.ContainsKey(opTimeZoneId) || !SystemTimeZones.ContainsKey(reactorTimeZoneId))
-                            {
-                                await reactor.SendMessageAsync(
-                                    "There was a problem, please reach out to your bot developer.");
-                                return;
-                            }
-                            TimeZoneInfo opTimeZone = SystemTimeZones[opTimeZoneId] ;
-                            TimeZoneInfo reactorTimeZone = SystemTimeZones[reactorTimeZoneId];
-                            DateTime reactorsTime = TimeZoneInfo.ConvertTime(time, opTimeZone, reactorTimeZone);
-                            DiscordEmbed reactorTimeEmbed = new DiscordEmbedBuilder()
-                                .WithTitle("You requested a timezone conversion")
-                                .AddField("Poster's Time", $"\"{modelResult.Text}\"")
-                                .AddField("Your time", $"{reactorsTime:t}");
-
-                            await reactor.SendMessageAsync(embed: reactorTimeEmbed);
-                        }
+                        await reactor.SendMessageAsync("The original poster has not set up a time zone yet.");
+                        return;
                     }
+
+                    if (reactorTimeZoneId is null)
+                    {
+                        await reactor.SendMessageAsync("You have not set up a time zone yet.");
+                        return;
+                    }
+
+                    if (!SystemTimeZones.ContainsKey(opTimeZoneId) || !SystemTimeZones.ContainsKey(reactorTimeZoneId))
+                    {
+                        await reactor.SendMessageAsync(
+                            "There was a problem, please reach out to your bot developer.");
+                        return;
+                    }
+
+                    TimeZoneInfo opTimeZone = SystemTimeZones[opTimeZoneId];
+                    TimeZoneInfo reactorTimeZone = SystemTimeZones[reactorTimeZoneId];
+                    DateTime reactorsTime = TimeZoneInfo.ConvertTime(parsedTime, opTimeZone, reactorTimeZone);
+                    DiscordEmbed reactorTimeEmbed = new DiscordEmbedBuilder()
+                        .WithTitle("You requested a timezone conversion")
+                        .AddField("Poster's Time", $"\"{parsedText}\"")
+                        .AddField("Your time", $"{reactorsTime:t}");
+
+                    await reactor.SendMessageAsync(embed: reactorTimeEmbed);
                 }
             }
         }

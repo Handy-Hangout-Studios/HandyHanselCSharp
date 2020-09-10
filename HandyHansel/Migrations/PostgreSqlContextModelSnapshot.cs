@@ -44,6 +44,27 @@ namespace HandyHansel.Migrations
                     b.ToTable("all_guild_events");
                 });
 
+            modelBuilder.Entity("HandyHansel.Models.GuildPrefix", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id")
+                        .UseIdentityByDefaultColumn();
+
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("guild_id");
+
+                    b.Property<string>("Prefix")
+                        .HasColumnType("text")
+                        .HasColumnName("prefix");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("all_guild_prefixes");
+                });
+
             modelBuilder.Entity("HandyHansel.Models.ScheduledEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -51,6 +72,10 @@ namespace HandyHansel.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id")
                         .UseIdentityByDefaultColumn();
+
+                    b.Property<bool>("Announced")
+                        .HasColumnType("boolean")
+                        .HasColumnName("announced");
 
                     b.Property<decimal>("ChannelId")
                         .HasColumnType("numeric(20,0)")

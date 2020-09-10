@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -21,6 +22,10 @@ namespace HandyHansel.Models
 
         [Column("channel_id")]
         public ulong ChannelId { get; set; }
+        
+        [Column("announced")]
+        [DefaultValue(false)]
+        public bool Announced { get; set; }
         
         [ForeignKey("GuildEventId")]
         // ReSharper disable once UnusedAutoPropertyAccessor.Global

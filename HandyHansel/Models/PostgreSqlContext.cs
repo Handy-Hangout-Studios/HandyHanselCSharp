@@ -16,13 +16,11 @@ namespace HandyHansel.Models
 
         }
 
-        // ReSharper disable once UnusedAutoPropertyAccessor.Local
+        // ReSharper disable four UnusedAutoPropertyAccessor.Local
         public DbSet<UserTimeZone> UserTimeZones { get; private set; }
-        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public DbSet<GuildEvent> GuildEvents { get; private set; }
-        
-        // ReSharper disable once UnusedAutoPropertyAccessor.Local
         public DbSet<ScheduledEvent> ScheduledEvents { get; private set; }
+        public DbSet<GuildPrefix> GuildPrefixes { get; private set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

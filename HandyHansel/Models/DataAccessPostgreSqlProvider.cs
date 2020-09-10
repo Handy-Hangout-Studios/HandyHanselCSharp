@@ -37,12 +37,12 @@ namespace HandyHansel.Models
 
         public void DeleteUserTimeZone(UserTimeZone userTimeZone)
         {
-            UserTimeZone entity = _mContext.UserTimeZones.First(e => e.UserId == userTimeZone.UserId);
+            UserTimeZone entity = _mContext.UserTimeZones.Find(userTimeZone.Id);
             _mContext.UserTimeZones.Remove(entity);
             _mContext.SaveChanges();
         }
 
-        public List<UserTimeZone> GetUserTimeZones()
+        public IEnumerable<UserTimeZone> GetUserTimeZones()
         {
             return _mContext.UserTimeZones.ToList();
         }
@@ -64,12 +64,12 @@ namespace HandyHansel.Models
 
         public void DeleteGuildEvent(GuildEvent guildEvent)
         {
-            GuildEvent entity = _mContext.GuildEvents.First(e => e.Id == guildEvent.Id);
+            GuildEvent entity = _mContext.GuildEvents.Find(guildEvent.Id);
             _mContext.GuildEvents.Remove(entity);
             _mContext.SaveChanges();
         }
 
-        public List<GuildEvent> GetAllAssociatedGuildEvents(ulong guildId)
+        public IEnumerable<GuildEvent> GetAllAssociatedGuildEvents(ulong guildId)
         {
             return _mContext.GuildEvents.Where(ge => ge.GuildId == guildId).ToList();
         }
@@ -84,23 +84,65 @@ namespace HandyHansel.Models
             _mContext.SaveChanges();
         }
 
+        public void SetEventAnnounced(ScheduledEvent scheduledEvent)
+        {
+            scheduledEvent.Announced = true;
+            _mContext.ScheduledEvents.Update(scheduledEvent);
+        }
+
+        public void SaveAnnouncedEvents()
+        {
+            _mContext.SaveChanges();
+        }
+        
         public void DeleteScheduledEvent(ScheduledEvent scheduledEvent)
         {
-            ScheduledEvent delete = _mContext.ScheduledEvents.First(e => e.Id == scheduledEvent.Id);
+            ScheduledEvent delete = _mContext.ScheduledEvents.Find(scheduledEvent.Id);
+            if (delete == null) return;
             _mContext.ScheduledEvents.Remove(delete);
             _mContext.SaveChanges();
         }
-
-        public IEnumerable<ScheduledEvent> GetAllPastScheduledEvents()
+        
+        public IEnumerable<ScheduledEvent> GetAllPastScheduledEvents(TimeSpan? amountOfTimeInFuture = null)
         {
-            return _mContext.ScheduledEvents.Where(se => se.ScheduledDate < DateTime.Now).Include(se => se.Event).ToList();
+            TimeSpan nonNull = amountOfTimeInFuture ?? new TimeSpan(0);
+            DateTime currentTimeMinusSpan = DateTime.Now.Add(nonNull);
+            return _mContext.ScheduledEvents.Where(se => se.ScheduledDate < currentTimeMinusSpan).Include(se => se.Event).ToList();
         }
 
-        public List<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId)
+        public IEnumerable<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId)
         {
             return _mContext.ScheduledEvents.Where(se => se.Event.GuildId.Equals(guildId)).Include(se => se.Event).ToList();
         }
 
         #endregion
+        
+        #region Guild Prefixes
+
+        public void AddGuildPrefix(GuildPrefix prefix)
+        {
+            _mContext.GuildPrefixes.Add(prefix);
+            _mContext.SaveChanges();
+        }
+
+        public void DeleteGuildPrefix(GuildPrefix prefix)
+        {
+            GuildPrefix delete = _mContext.GuildPrefixes.Find(prefix.Id);
+            if (delete == null) return;
+            _mContext.Remove(delete);
+            _mContext.SaveChanges();
+        }
+
+        public IEnumerable<GuildPrefix> GetAllAssociatedGuildPrefixes(ulong guildId)
+        {
+            return _mContext.GuildPrefixes.Where(prefix => prefix.GuildId == guildId);
+        }
+        
+        #endregion
+
+        public void Dispose()
+        {
+            _mContext?.Dispose();
+        }
     }
 }

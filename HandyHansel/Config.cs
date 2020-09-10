@@ -6,6 +6,10 @@ using HandyHansel.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DSharpPlus.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace HandyHansel
@@ -31,9 +35,10 @@ namespace HandyHansel
 
             CommandsConfig = new CommandsNextConfiguration
             {
-                StringPrefixes = new[] { "^" },
+                PrefixResolver = PrefixResolver,
                 Services = deps,
                 EnableDms = true,
+                EnableMentionPrefix = true,
             };
 
             InteractivityConfig = new InteractivityConfiguration
@@ -42,6 +47,24 @@ namespace HandyHansel
                 Timeout = TimeSpan.FromMinutes(2),
             };
         }
+        
+
+#pragma warning disable 1998
+        private static async Task<int> PrefixResolver(DiscordMessage msg)
+        {
+            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            List<GuildPrefix> guildPrefixes =
+                dataAccessProvider.GetAllAssociatedGuildPrefixes(msg.Channel.GuildId).ToList();
+            if (!guildPrefixes.Any())
+                return msg.GetStringPrefixLength("^");
+            foreach (int length in guildPrefixes.Select(prefix => msg.GetStringPrefixLength(prefix.Prefix)).Where(length => length != -1))
+            {
+                return length;
+            }
+
+            return -1;
+        }
+#pragma warning restore 1998
 
         internal DiscordConfiguration ClientConfig { get; }
         internal CommandsNextConfiguration CommandsConfig { get; }
