@@ -107,12 +107,12 @@ namespace HandyHansel.Models
         {
             TimeSpan nonNull = amountOfTimeInFuture ?? new TimeSpan(0);
             DateTime currentTimeMinusSpan = DateTime.Now.Add(nonNull);
-            return _mContext.ScheduledEvents.Where(se => se.ScheduledDate < currentTimeMinusSpan).Include(se => se.Event).ToList();
+            return _mContext.ScheduledEvents.Where(se => se.ScheduledDate < currentTimeMinusSpan && !se.Announced).Include(se => se.Event).ToList();
         }
 
         public IEnumerable<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId)
         {
-            return _mContext.ScheduledEvents.Where(se => se.Event.GuildId.Equals(guildId)).Include(se => se.Event).ToList();
+            return _mContext.ScheduledEvents.Where(se => se.Event.GuildId.Equals(guildId) && !se.Announced).Include(se => se.Event).ToList();
         }
 
         #endregion
