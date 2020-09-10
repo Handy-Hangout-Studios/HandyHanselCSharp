@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HandyHansel.Models
 {
@@ -11,6 +8,7 @@ namespace HandyHansel.Models
     {
         [Key]
         [Column("id")]
+        // ReSharper disable once UnusedMember.Global
         public int Id { get; set;  }
 
         [Column("user_id")]
@@ -20,6 +18,7 @@ namespace HandyHansel.Models
         public string TimeZoneId { get; set; }
 
         [Column("operating_system")]
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public string OperatingSystem { get; set; }
     }
 }
