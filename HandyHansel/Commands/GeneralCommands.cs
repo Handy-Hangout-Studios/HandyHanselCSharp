@@ -20,5 +20,12 @@ namespace HandyHansel.Commands
             if (!result.TimedOut)
                 await context.RespondAsync("I'm fine, thank you!");
         }
+
+        [Command("break"), Description("Purposefully throw an error for testing purposes"), Hidden]
+        public async Task Break(CommandContext context)
+        {
+            await context.RespondAsync("Throwing an exception now");
+            throw new Exception();
+        }
     }
 }

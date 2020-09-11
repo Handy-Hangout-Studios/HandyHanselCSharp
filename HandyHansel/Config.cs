@@ -3,7 +3,6 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
 using HandyHansel.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -28,15 +27,12 @@ namespace HandyHansel
                 MinimumLogLevel = LogLevel.Information,
             };
 
-            IServiceProvider deps = new ServiceCollection()
-                                        .AddDbContext<PostgreSqlContext>(options => options.UseNpgsql(Environment.GetEnvironmentVariable("POSTGRESQL_CONN_STRING")!))
-                                        .AddScoped<IDataAccessProvider, DataAccessPostgreSqlProvider>()
-                                        .BuildServiceProvider();
+            IServiceCollection deps = new ServiceCollection();
 
             CommandsConfig = new CommandsNextConfiguration
             {
                 PrefixResolver = PrefixResolver,
-                Services = deps,
+                Services = deps.BuildServiceProvider(),
                 EnableDms = true,
                 EnableMentionPrefix = true,
             };
@@ -47,7 +43,7 @@ namespace HandyHansel
                 Timeout = TimeSpan.FromMinutes(2),
             };
         }
-        
+
 
 #pragma warning disable 1998
         private static async Task<int> PrefixResolver(DiscordMessage msg)
