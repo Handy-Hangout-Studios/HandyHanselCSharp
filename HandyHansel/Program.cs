@@ -11,6 +11,10 @@ using DSharpPlus.Interactivity;
 using HandyHansel.Commands;
 using HandyHansel.Models;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Exceptions;
+using Serilog.Formatting.Json;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace HandyHansel
 {
@@ -26,8 +30,22 @@ namespace HandyHansel
         public static readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
         
         public static void Main()
-        {
-            MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        {    
+            try
+            {
+                Log.Logger = new LoggerConfiguration()
+                    .Enrich.WithExceptionDetails()
+                    .WriteTo.RollingFile(
+                        new JsonFormatter(renderMessage: true),
+                        "HandyHanselLog-{Date}.txt"
+                    )
+                    .CreateLogger();
+                MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+            catch(Exception exception)
+            {
+                Log.Logger.Error(exception, "Exception from Normal Running");
+            }
         }
 
         private static async Task MainAsync()
@@ -46,9 +64,21 @@ namespace HandyHansel
             _discord.MessageCreated += CheckForDate;
             _discord.MessageReactionAdded += SendAdjustedDate;
             _discord.Ready += StartTimer;
+            _commands.CommandErrored += LogExceptions;
 
             await _discord.ConnectAsync();
             await Task.Delay(-1);
+        }
+
+        private static async Task LogExceptions(CommandErrorEventArgs e)
+        {
+            ulong devUserId = Convert.ToUInt64(Environment.GetEnvironmentVariable("DEV_USER_ID"));
+            DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
+                .WithTitle(e.Command.QualifiedName)
+                .AddField("Message", e.Exception.Message)
+                .AddField("StackTrace", e.Exception.StackTrace);
+            await e.Context.Guild.Members[devUserId].SendMessageAsync(embed: commandErrorEmbed);
+            Log.Logger.Error(e.Exception, "Exception from Command Errored");
         }
 
         private static async Task StartTimer(ReadyEventArgs args)
@@ -194,6 +224,7 @@ namespace HandyHansel
                     }
                     catch (Exception exception)
                     {
+                        Log.Logger.Error(exception, "Exception from Sending Adjusted Time to the Reactor");
                         Logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
                     }
                 }
