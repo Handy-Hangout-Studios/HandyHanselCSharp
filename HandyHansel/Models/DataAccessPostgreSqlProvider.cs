@@ -1,18 +1,16 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
 namespace HandyHansel.Models
 {
-    class DataAccessPostgreSqlProvider : IDataAccessProvider
+    public class DataAccessPostgreSqlProvider : IDataAccessProvider
     {
         /// <summary>
         /// The context that allows access to the different tables in the database.
         /// </summary>
-        private readonly PostgreSqlContext m_context;
+        private readonly PostgreSqlContext _mContext;
 
         /// <summary>
         /// Creates a DataAccessPostgreSqlProvider for use by the programmer
@@ -20,32 +18,38 @@ namespace HandyHansel.Models
         /// <param name="context">The PostgreSqlContext to use for this Provider</param>
         public DataAccessPostgreSqlProvider(PostgreSqlContext context)
         {
-            m_context = context;
+            _mContext = context;
         }
 
-        #region GuildTimeZones
+        #region UserTimeZones
 
-        public void AddGuildTimeZone(GuildTimeZone guildTimeZone)
+        public void AddUserTimeZone(UserTimeZone userTimeZone)
         {
-            m_context.GuildTimeZones.Add(guildTimeZone);
-            m_context.SaveChanges();
+            _mContext.UserTimeZones.Add(userTimeZone);
+            _mContext.SaveChanges();
         }
 
-        public void DeleteGuildTimeZone(GuildTimeZone guildTimeZone)
+        public void UpdateUserTimeZone(UserTimeZone userTimeZone)
         {
-            GuildTimeZone entity = m_context.GuildTimeZones.First(e => e.Guild == guildTimeZone.Guild && e.TimeZoneId == guildTimeZone.TimeZoneId);
-            m_context.GuildTimeZones.Remove(entity);
-            m_context.SaveChanges();
+            _mContext.UserTimeZones.Update(userTimeZone);
+            _mContext.SaveChanges();
         }
 
-        public List<GuildTimeZone> GetAllGuildsTimeZones()
+        public void DeleteUserTimeZone(UserTimeZone userTimeZone)
         {
-            return m_context.GuildTimeZones.ToList();
+            UserTimeZone entity = _mContext.UserTimeZones.Find(userTimeZone.Id);
+            _mContext.UserTimeZones.Remove(entity);
+            _mContext.SaveChanges();
         }
 
-        public List<GuildTimeZone> GetAllAssociatedGuildTimeZones(ulong guildId)
+        public IEnumerable<UserTimeZone> GetUserTimeZones()
         {
-            return m_context.GuildTimeZones.Where(gtz => gtz.Guild == guildId).ToList();
+            return _mContext.UserTimeZones.ToList();
+        }
+
+        public UserTimeZone GetUsersTimeZone(ulong userId)
+        {
+            return _mContext.UserTimeZones.FirstOrDefault(utz => utz.UserId == userId);
         }
 
         #endregion
@@ -54,20 +58,20 @@ namespace HandyHansel.Models
 
         public void AddGuildEvent(GuildEvent guildEvent)
         {
-            m_context.GuildEvents.Add(guildEvent);
-            m_context.SaveChanges();
+            _mContext.GuildEvents.Add(guildEvent);
+            _mContext.SaveChanges();
         }
 
         public void DeleteGuildEvent(GuildEvent guildEvent)
         {
-            GuildEvent entity = m_context.GuildEvents.First(e => e.Id == guildEvent.Id);
-            m_context.GuildEvents.Remove(entity);
-            m_context.SaveChanges();
+            GuildEvent entity = _mContext.GuildEvents.Find(guildEvent.Id);
+            _mContext.GuildEvents.Remove(entity);
+            _mContext.SaveChanges();
         }
 
-        public List<GuildEvent> GetAllAssociatedGuildEvents(ulong guildId)
+        public IEnumerable<GuildEvent> GetAllAssociatedGuildEvents(ulong guildId)
         {
-            return m_context.GuildEvents.Where(ge => ge.GuildId == guildId).ToList();
+            return _mContext.GuildEvents.Where(ge => ge.GuildId == guildId).ToList();
         }
 
         #endregion
@@ -76,27 +80,69 @@ namespace HandyHansel.Models
 
         public void AddScheduledEvent(ScheduledEvent scheduledEvent)
         {
-            m_context.ScheduledEvents.Add(scheduledEvent);
-            m_context.SaveChanges();
+            _mContext.ScheduledEvents.Add(scheduledEvent);
+            _mContext.SaveChanges();
         }
 
+        public void SetEventAnnounced(ScheduledEvent scheduledEvent)
+        {
+            scheduledEvent.Announced = true;
+            _mContext.ScheduledEvents.Update(scheduledEvent);
+        }
+
+        public void SaveAnnouncedEvents()
+        {
+            _mContext.SaveChanges();
+        }
+        
         public void DeleteScheduledEvent(ScheduledEvent scheduledEvent)
         {
-            ScheduledEvent delete = m_context.ScheduledEvents.First(e => e.Id == scheduledEvent.Id);
-            m_context.ScheduledEvents.Remove(delete);
-            m_context.SaveChanges();
+            ScheduledEvent delete = _mContext.ScheduledEvents.Find(scheduledEvent.Id);
+            if (delete == null) return;
+            _mContext.ScheduledEvents.Remove(delete);
+            _mContext.SaveChanges();
+        }
+        
+        public IEnumerable<ScheduledEvent> GetAllPastScheduledEvents(TimeSpan? amountOfTimeInFuture = null)
+        {
+            TimeSpan nonNull = amountOfTimeInFuture ?? new TimeSpan(0);
+            DateTime currentTimeMinusSpan = DateTime.Now.Add(nonNull);
+            return _mContext.ScheduledEvents.Where(se => se.ScheduledDate < currentTimeMinusSpan && !se.Announced).Include(se => se.Event).ToList();
         }
 
-        public List<ScheduledEvent> GetAllPastScheduledEvents()
+        public IEnumerable<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId)
         {
-            return m_context.ScheduledEvents.Where(se => se.ScheduledDate < DateTime.Now).Include(se => se.Event).ToList();
-        }
-
-        public List<ScheduledEvent> GetAllScheduledEventsForGuild(ulong guildId)
-        {
-            return m_context.ScheduledEvents.Where(se => se.Event.GuildId.Equals(guildId)).Include(se => se.Event).ToList();
+            return _mContext.ScheduledEvents.Where(se => se.Event.GuildId.Equals(guildId) && !se.Announced).Include(se => se.Event).ToList();
         }
 
         #endregion
+        
+        #region Guild Prefixes
+
+        public void AddGuildPrefix(GuildPrefix prefix)
+        {
+            _mContext.GuildPrefixes.Add(prefix);
+            _mContext.SaveChanges();
+        }
+
+        public void DeleteGuildPrefix(GuildPrefix prefix)
+        {
+            GuildPrefix delete = _mContext.GuildPrefixes.Find(prefix.Id);
+            if (delete == null) return;
+            _mContext.Remove(delete);
+            _mContext.SaveChanges();
+        }
+
+        public IEnumerable<GuildPrefix> GetAllAssociatedGuildPrefixes(ulong guildId)
+        {
+            return _mContext.GuildPrefixes.Where(prefix => prefix.GuildId == guildId);
+        }
+        
+        #endregion
+
+        public void Dispose()
+        {
+            _mContext?.Dispose();
+        }
     }
 }

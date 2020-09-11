@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HandyHansel.Models
@@ -10,6 +8,7 @@ namespace HandyHansel.Models
     {
         [Key] 
         [Column("id")] 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public int Id { get; set; }
         
         [Column("guild")] 

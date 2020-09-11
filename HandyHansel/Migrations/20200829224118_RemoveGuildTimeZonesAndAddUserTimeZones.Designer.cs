@@ -3,15 +3,17 @@ using System;
 using HandyHansel.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace HandyHansel.Migrations
 {
     [DbContext(typeof(PostgreSqlContext))]
-    partial class PostgreSqlContextModelSnapshot : ModelSnapshot
+    [Migration("20200829224118_RemoveGuildTimeZonesAndAddUserTimeZones")]
+    partial class RemoveGuildTimeZonesAndAddUserTimeZones
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,27 +46,6 @@ namespace HandyHansel.Migrations
                     b.ToTable("all_guild_events");
                 });
 
-            modelBuilder.Entity("HandyHansel.Models.GuildPrefix", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id")
-                        .UseIdentityByDefaultColumn();
-
-                    b.Property<decimal>("GuildId")
-                        .HasColumnType("numeric(20,0)")
-                        .HasColumnName("guild_id");
-
-                    b.Property<string>("Prefix")
-                        .HasColumnType("text")
-                        .HasColumnName("prefix");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("all_guild_prefixes");
-                });
-
             modelBuilder.Entity("HandyHansel.Models.ScheduledEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -72,10 +53,6 @@ namespace HandyHansel.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id")
                         .UseIdentityByDefaultColumn();
-
-                    b.Property<bool>("Announced")
-                        .HasColumnType("boolean")
-                        .HasColumnName("announced");
 
                     b.Property<decimal>("ChannelId")
                         .HasColumnType("numeric(20,0)")

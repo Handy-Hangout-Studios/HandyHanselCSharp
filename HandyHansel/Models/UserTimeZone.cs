@@ -1,26 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HandyHansel.Models
 {
-    [Table("all_guild_time_zones")]
-    public class GuildTimeZone
+    [Table("all_user_time_zones")]
+    public class UserTimeZone
     {
         [Key]
         [Column("id")]
+        // ReSharper disable once UnusedMember.Global
         public int Id { get; set;  }
 
-        [Column("guild")]
-        public ulong Guild { get; set; }
+        [Column("user_id")]
+        public ulong UserId { get; set; }
         
         [Column("timezone_id")]
         public string TimeZoneId { get; set; }
 
         [Column("operating_system")]
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public string OperatingSystem { get; set; }
-
     }
 }
