@@ -31,7 +31,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.0-rc1" />
     <PackageReference Include="Quartz" Version="3.1.0" />
     <PackageReference Include="Quartz.AspNetCore" Version="3.1.0" />
-    <PackageReference Include="Quartz.Jobs" Version="3.1.0" />
+    <PackageReference Include="Quartz.Jobs" Version="3.2.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="3.4.0" />
     <PackageReference Include="Serilog.Exceptions" Version="5.6.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0-dev-00887" />
