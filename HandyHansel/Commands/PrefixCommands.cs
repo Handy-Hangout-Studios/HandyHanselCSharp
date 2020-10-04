@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,13 +14,41 @@ using HandyHansel.Models;
 
 namespace HandyHansel.Commands
 {
-    [Group("prefix")]
-    [Description(
-        "All functionalities associated with prefixes in Handy Hansel.\n\nWhen used alone, add prefix to guild's prefixes")]
+    [Group("prefix"), Description("All functionalities associated with prefixes in Handy Hansel.\n\nWhen used alone, show all guild's prefixes separated by spaces")]
     // ReSharper disable once ClassNeverInstantiated.Global
     public class PrefixCommands : BaseCommandModule
     {
-        [Command("add")]
+        [GroupCommand]
+        // ReSharper disable once UnusedMember.Global
+        public async Task ExecuteGroupAsync(CommandContext context)
+        {
+            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            string prefixString; 
+            List<GuildPrefix> guildPrefixes = dataAccessProvider
+                .GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
+            if(!guildPrefixes.Any())
+            {
+                prefixString = "^";
+            }
+            else if (guildPrefixes.Count == 1)
+            {
+                prefixString = guildPrefixes.First().Prefix;
+            }
+            else
+            {
+                prefixString = guildPrefixes
+                    .Select(
+                        prefix => 
+                            prefix.Prefix)
+                    .Aggregate(
+                        (partial, next) 
+                            => $"{partial} {next}");
+            }
+            
+            await context.RespondAsync($"{context.User.Mention}, the prefixes are: {prefixString}");
+        }
+        
+        [Command("add"), Description("Add prefix to guild's prefixes")]
         // ReSharper disable once UnusedMember.Global
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
