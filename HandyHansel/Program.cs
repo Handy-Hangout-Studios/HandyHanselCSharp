@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
@@ -12,183 +12,108 @@ using HandyHansel.Commands;
 using HandyHansel.Models;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Exceptions;
-using Serilog.Formatting.Json;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace HandyHansel
 {
     public static class Program
     {
-        private static Timer _eventTimer;
-        private static DiscordClient _discord;
-        private static CommandsNextExtension _commands;
-        // ReSharper disable once NotAccessedField.Local
-        private static InteractivityExtension _interactivity;
-        public static ILogger Logger;
+        private static readonly ulong _devUserId;
+        private static readonly DiscordShardedClient _discord;
+        private static IReadOnlyDictionary<int, CommandsNextExtension> _commands;
+        private static readonly Config _config;
 
-        public static readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
-        
+        // ReSharper disable once NotAccessedField.Local
+        private static IReadOnlyDictionary<int, InteractivityExtension> _interactivity;
+        public static Microsoft.Extensions.Logging.ILogger Logger;
+
+        public static readonly Dictionary<string, TimeZoneInfo> SystemTimeZones =
+            TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
+
+        public static Dictionary<ulong, List<GuildBackgroundJob> > guildBackgroundJobs =
+            new Dictionary<ulong, List<GuildBackgroundJob> >();
+
+        private static DiscordEmoji _clock;
+
+        private static Parser _timeParser;
+        private static DiscordEmoji Clock => _clock ?? SetClock();
+        private static Parser TimeParser => _timeParser ?? SetTimeParser();
+
+        static Program()
+        {
+            _config = new Config();
+            _discord = new DiscordShardedClient(_config.ClientConfig);
+            _devUserId = _config.DevUserId;
+            Logger = _discord.Logger;
+        }
+
         public static void Main()
-        {    
-            try
-            {
-                Log.Logger = new LoggerConfiguration()
-                    .Enrich.WithExceptionDetails()
-                    .WriteTo.RollingFile(
-                        new JsonFormatter(renderMessage: true),
-                        "HandyHanselLog-{Date}.txt"
-                    )
-                    .CreateLogger();
-                MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-            catch(Exception exception)
-            {
-                Log.Logger.Error(exception, "Exception from Normal Running");
-            }
+        {
+            MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         private static async Task MainAsync()
         {
-            Config config = new Config();
-            _discord = new DiscordClient(config.ClientConfig);
-            Logger = _discord.Logger;
-            _commands = _discord.UseCommandsNext(config.CommandsConfig);
-            _interactivity = _discord.UseInteractivity(config.InteractivityConfig);
+            _commands = await _discord.UseCommandsNextAsync(_config.CommandsConfig);
+            _interactivity = await _discord.UseInteractivityAsync(_config.InteractivityConfig);
 
-            _commands.RegisterCommands<GeneralCommands>();
-            _commands.RegisterCommands<TimeCommands>();
-            _commands.RegisterCommands<EventCommands>();
-            _commands.RegisterCommands<PrefixCommands>();
+            foreach (KeyValuePair<int, CommandsNextExtension> pair in _commands)
+            {
+                pair.Value.RegisterCommands<GeneralCommands>();
+                pair.Value.RegisterCommands<TimeCommands>();
+                pair.Value.RegisterCommands<EventCommands>();
+                pair.Value.RegisterCommands<PrefixCommands>();
+                pair.Value.CommandErrored += LogExceptions;
+            }
 
             _discord.MessageCreated += CheckForDate;
             _discord.MessageReactionAdded += SendAdjustedDate;
-            _discord.Ready += StartTimer;
-            _commands.CommandErrored += LogExceptions;
 
-            await _discord.ConnectAsync();
+            await _discord.StartAsync();
             await Task.Delay(-1);
         }
 
-        private static async Task LogExceptions(CommandErrorEventArgs e)
+        private static async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
-            ulong devUserId = Convert.ToUInt64(Environment.GetEnvironmentVariable("DEV_USER_ID"));
             DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
-                .WithTitle(e.Command.QualifiedName)
                 .AddField("Message", e.Exception.Message)
                 .AddField("StackTrace", e.Exception.StackTrace);
-            await e.Context.Guild.Members[devUserId].SendMessageAsync(embed: commandErrorEmbed);
+            await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
             Log.Logger.Error(e.Exception, "Exception from Command Errored");
         }
 
-        private static async Task StartTimer(ReadyEventArgs args)
-        {
-            SetTimer();
-            _discord.Logger.Log(LogLevel.Information, "Timer", "Timer has been started", DateTime.Now);
-            await Task.FromResult(0);
-        }
-        private static void SetTimer()
-        {
-            _eventTimer = new Timer(6000);
-            _eventTimer.Elapsed += CheckForScheduledEvents;
-            _eventTimer.AutoReset = true;
-            _eventTimer.Enabled = true;
-        }
-    
-        
-        private static readonly HashSet<int> TenMinuteNotified = new HashSet<int>();
-        private static async void CheckForScheduledEvents(object source, ElapsedEventArgs e)
-        {
-            using IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
-            _discord.Logger.Log(LogLevel.Information, "Timer", "Timer event fired", DateTime.Now);
-            IEnumerable<ScheduledEvent> allScheduledEvents = database.GetAllPastScheduledEvents();
-            foreach (ScheduledEvent se in allScheduledEvents)
-            {
-                lock (TenMinuteNotified)
-                {
-                    TenMinuteNotified.Remove(se.Id);
-                }
-                database.SetEventAnnounced(se);
-                DiscordChannel channel = await _discord.GetChannelAsync(se.ChannelId);
-                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}",
-                    DateTime.Now);
-                DiscordEmbed embed = new DiscordEmbedBuilder()
-                    .WithTitle(se.Event.EventName)
-                    .WithAuthor(_discord.CurrentUser.Username, iconUrl: _discord.CurrentUser.AvatarUrl)
-                    .WithDescription(se.Event.EventDesc)
-                    .Build();
-                await _discord.SendMessageAsync(channel, "@everyone, this event is starting now!");
-                await _discord.SendMessageAsync(channel, embed: embed);
-            }
-
-            database.SaveAnnouncedEvents();
-
-            List<ScheduledEvent> allUpcomingScheduledEvents =
-                database.GetAllPastScheduledEvents(TimeSpan.FromMinutes(10)).ToList();
-            lock (TenMinuteNotified)
-            {
-                allUpcomingScheduledEvents = allUpcomingScheduledEvents.Where(scheduledEvent =>
-                    !TenMinuteNotified.Contains(scheduledEvent.Id)).ToList();
-
-                foreach (ScheduledEvent scheduledEvent in allUpcomingScheduledEvents)
-                {
-                    TenMinuteNotified.Add(scheduledEvent.Id);
-                }
-            }
-            
-            foreach (ScheduledEvent se in allUpcomingScheduledEvents)
-            {
-                DiscordChannel channel = await _discord.GetChannelAsync(se.ChannelId);
-                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}",
-                    DateTime.Now);
-                DiscordEmbed embed = new DiscordEmbedBuilder()
-                    .WithTitle(se.Event.EventName)
-                    .WithAuthor(_discord.CurrentUser.Username, iconUrl: _discord.CurrentUser.AvatarUrl)
-                    .WithDescription(se.Event.EventDesc)
-                    .Build();
-                await _discord.SendMessageAsync(channel, "@everyone, this event is starting in 10 minutes!");
-                await _discord.SendMessageAsync(channel, embed: embed);
-            }
-        }
-
-        private static DiscordEmoji _clock;
         private static DiscordEmoji SetClock()
         {
-            return _clock ??= DiscordEmoji.FromName(_discord, ":clock:");
+            return _clock ??= DiscordEmoji.FromName(_discord.ShardClients[0], ":clock:");
         }
-        private static DiscordEmoji Clock => _clock ?? SetClock();
-        
-        private static Parser _timeParser;
+
         private static Parser SetTimeParser()
         {
             return _timeParser ??= new Parser(Parser.ParserType.Time);
         }
-        private static Parser TimeParser => _timeParser ?? SetTimeParser();
-        
-        private static async Task CheckForDate(MessageCreateEventArgs e)
+
+        private static async Task CheckForDate(DiscordClient c, MessageCreateEventArgs e)
         {
             if (e.Author.IsBot) return;
-            
+
             IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(e.Message.Content);
 
-            if (parserList.Count() != 0)
-            {
-                await e.Message.CreateReactionAsync(Clock);
-            }
+            if (parserList.Count() != 0) await e.Message.CreateReactionAsync(Clock);
         }
-        private static async Task SendAdjustedDate(MessageReactionAddEventArgs e)
+
+        private static async Task SendAdjustedDate(DiscordClient c, MessageReactionAddEventArgs e)
         {
             if (e.User.IsBot) return;
-            
+
             using IDataAccessProvider database = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
             if (e.Emoji.Equals(Clock))
             {
-                DiscordChannel channel = await _discord.GetChannelAsync(e.Channel.Id);
+                DiscordChannel channel = await c.GetChannelAsync(e.Channel.Id);
                 DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
                 IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(msg.Content);
-                foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element => element.Item2 > DateTime.Now))
+                foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element =>
+                    element.Item2 > DateTime.Now))
                 {
-                    DiscordMember reactor = (DiscordMember) e.User;
+                    DiscordMember reactor = (DiscordMember)e.User;
                     string opTimeZoneId = database.GetUsersTimeZone(msg.Author.Id)?.TimeZoneId;
                     string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId;
                     if (opTimeZoneId is null)
@@ -229,6 +154,22 @@ namespace HandyHansel
                     }
                 }
             }
+        }
+
+        public static async void SendEmbedWithMessageToChannelAsUser(CancellationToken token, ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
+        {
+            if (token.IsCancellationRequested) return;
+            DiscordClient shardClient = _discord.GetShard(guildId);
+            DiscordChannel channel = await shardClient.GetChannelAsync(channelId);
+            DiscordUser poster = await shardClient.GetUserAsync(userId);
+            _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}", DateTime.Now);
+            DiscordEmbed embed = new DiscordEmbedBuilder()
+                    .WithTitle(title)
+                    .WithAuthor(poster.Username, iconUrl: poster.AvatarUrl)
+                    .WithDescription(description)
+                    .Build();
+            await shardClient.SendMessageAsync(channel, message);
+            await shardClient.SendMessageAsync(channel, embed: embed);
         }
     }
 }
