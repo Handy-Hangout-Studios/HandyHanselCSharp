@@ -68,7 +68,7 @@ jobs:
     - name: Start new process using SSH command
       uses: garygrossgarten/github-action-ssh@v0.5.0
       with: 
-        command: cd HandyHansel/HandyHanselDir; jq ${{ secrets.HANDY_HANSEL_CONFIG_JSON }} > config.json; (exec ./HandyHansel &> /dev/null &);
+        command: cd HandyHansel/HandyHanselDir; cp ~/HandyHanselResources/prodconfig.json config.json; (exec ./HandyHansel &> /dev/null &);
         host: ${{ secrets.LINODE_HOST_NAME }}
         username: ${{ secrets.USER_GITHUB_DEPLOY_USERNAME }}
         privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
