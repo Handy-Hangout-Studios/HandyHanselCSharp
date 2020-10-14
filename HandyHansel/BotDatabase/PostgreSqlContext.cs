@@ -36,17 +36,17 @@ namespace HandyHansel.Models
                     .AddJsonFile("config.json")
                     .Build();
 
-                ConfigJson configJson = new ConfigJson();
+                BotConfig configJson = new BotConfig();
                 config.Bind(configJson);
 
                 NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
                 {
-                    Host = configJson.Host,
-                    Port = configJson.Port,
-                    Database = configJson.BotDatabase,
-                    Username = configJson.Username,
-                    Password = configJson.Password,
-                    Pooling = configJson.Pooling,
+                    Host = configJson.Database.Host,
+                    Port = configJson.Database.Port,
+                    Database = configJson.Database.Name,
+                    Username = configJson.Database.Username,
+                    Password = configJson.Database.Password,
+                    Pooling = configJson.Database.Pooling,
                 };
 
                 DbConnectionString = connectionStringBuilder.ConnectionString;

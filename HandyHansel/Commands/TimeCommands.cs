@@ -15,11 +15,18 @@ namespace HandyHansel.Commands
     // ReSharper disable once ClassNeverInstantiated.Global
     public class TimeCommands : BaseCommandModule
     {
+        private readonly BotService _bot;
+
+        public TimeCommands(BotService bot)
+        {
+            _bot = bot;
+        }
+
         [GroupCommand]
         // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = new BotAccessPostgreSqlProvider(new PostgreSqlContext());
             if (dataAccessProvider.GetUsersTimeZone(context.User.Id) != null)
             {
                 await context.RespondAsync(
@@ -34,7 +41,7 @@ namespace HandyHansel.Commands
                 await interactivity.WaitForMessageAsync(msg => msg.Author.Equals(context.Message.Author),
                     TimeSpan.FromMinutes(1));
 
-            if (!result.TimedOut && Program.SystemTimeZones.ContainsKey(result.Result.Content))
+            if (!result.TimedOut && _bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
                 UserTimeZone newUserTimeZone = new UserTimeZone
                 {
@@ -64,10 +71,10 @@ namespace HandyHansel.Commands
             InteractivityResult<DiscordMessage> result =
                 await interactivity.WaitForMessageAsync(msg => msg.Author.Equals(context.Message.Author));
 
-            if (!result.TimedOut && Program.SystemTimeZones.ContainsKey(result.Result.Content))
+            if (!result.TimedOut && _bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
-                using IDataAccessProvider dataAccessProvider =
-                    new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+                using IBotAccessProvider dataAccessProvider =
+                    new BotAccessPostgreSqlProvider(new PostgreSqlContext());
                 UserTimeZone updatedUserTimeZone = dataAccessProvider.GetUsersTimeZone(context.Message.Author.Id);
                 updatedUserTimeZone.TimeZoneId = result.Result.Content;
                 dataAccessProvider.UpdateUserTimeZone(updatedUserTimeZone);

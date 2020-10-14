@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace HandyHansel.Models
 {
-    public interface IDataAccessProvider : IDisposable
+    public interface IBotAccessProvider : IDisposable
     {
         #region User Time Zones
 

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HandyHansel.Models
 {
-    public class DataAccessPostgreSqlProvider : IDataAccessProvider
+    public class BotAccessPostgreSqlProvider : IBotAccessProvider
     {
         /// <summary>
         ///     The context that allows access to the different tables in the database.
@@ -16,7 +16,7 @@ namespace HandyHansel.Models
         ///     Creates a DataAccessPostgreSqlProvider for use by the programmer
         /// </summary>
         /// <param name="context">The PostgreSqlContext to use for this Provider</param>
-        public DataAccessPostgreSqlProvider(PostgreSqlContext context)
+        public BotAccessPostgreSqlProvider(PostgreSqlContext context)
         {
             _mContext = context;
         }

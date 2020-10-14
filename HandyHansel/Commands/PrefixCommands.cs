@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,11 +17,18 @@ namespace HandyHansel.Commands
     // ReSharper disable once ClassNeverInstantiated.Global
     public class PrefixCommands : BaseCommandModule
     {
+        private readonly IBotAccessProviderBuilder botAccessProvider;
+
+        public PrefixCommands(IBotAccessProviderBuilder accessProviderBuilder)
+        {
+            botAccessProvider = accessProviderBuilder;
+        }
+
         [GroupCommand]
         // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
             string prefixString; 
             List<GuildPrefix> guildPrefixes = dataAccessProvider
                 .GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
@@ -52,7 +58,7 @@ namespace HandyHansel.Commands
         // ReSharper disable once UnusedMember.Global
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
-            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
             GuildPrefix newGuildPrefix = new GuildPrefix
             {
                 Prefix = newPrefix,
@@ -68,7 +74,7 @@ namespace HandyHansel.Commands
         // ReSharper disable once UnusedMember.Global
         public async Task RemovePrefix(CommandContext context, string prefixToRemove)
         {
-            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = new BotAccessPostgreSqlProvider(new PostgreSqlContext());
             GuildPrefix guildPrefix = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)
                 .FirstOrDefault(e => e.Prefix.Equals(prefixToRemove));
             if (guildPrefix is null)
@@ -88,7 +94,7 @@ namespace HandyHansel.Commands
         // ReSharper disable once UnusedMember.Global
         public async Task InteractiveRemovePrefix(CommandContext context)
         {
-            using IDataAccessProvider dataAccessProvider = new DataAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
             DiscordMessage msg = await context.RespondAsync(
                 $":wave: Hi, {context.User.Mention}! You want to remove a prefix from your guild list?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -131,7 +137,7 @@ namespace HandyHansel.Commands
         }
 
         private static IEnumerable<Page> GetGuildPrefixPages(ulong guildId, InteractivityExtension interactivity,
-            IDataAccessProvider dataAccessProvider)
+            IBotAccessProvider dataAccessProvider)
         {
             StringBuilder guildPrefixesStringBuilder = new StringBuilder();
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(guildId).ToList();

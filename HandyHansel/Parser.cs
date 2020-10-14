@@ -35,12 +35,17 @@ namespace HandyHansel
         private readonly Dictionary<ParserType, Func<IEnumerable<KeyValuePair<string, object>>, IEnumerable<DateTime>>>
             _funcsToUse;
 
-        public Parser(params ParserType[] parserTypes)
+        private readonly ILogger _logger;
+
+        public Parser(ILogger logger, params ParserType[] parserTypes)
         {
+
             _funcsToUse =
                 new Dictionary<ParserType, Func<IEnumerable<KeyValuePair<string, object>>, IEnumerable<DateTime>>>();
 
             foreach (ParserType type in parserTypes) _funcsToUse.Add(type, _allParserFuncs[type]);
+
+            _logger = logger;
         }
 
         private static ParserType ToParserType(string content)
@@ -137,7 +142,7 @@ namespace HandyHansel
                 }
                 catch (ArgumentException exception)
                 {
-                    Program.Logger.Log(LogLevel.Debug, exception, "Devs need to implement these parsers. Things are hitting them.");
+                    _logger.Log(LogLevel.Debug, exception, "Devs need to implement these parsers. Things are hitting them.");
                 }
             }
             
