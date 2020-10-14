@@ -26,6 +26,7 @@ namespace HandyHansel
         private readonly CommandsNextConfiguration _commandsConfig;
         private readonly InteractivityConfiguration _interactivityConfig;
         private IReadOnlyDictionary<int, CommandsNextExtension> _commands;
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "This dictionary is required for the interactivity extension even though it appears to be unused.")]
         private IReadOnlyDictionary<int, InteractivityExtension> _interactivity;
         private readonly IBotAccessProviderBuilder _accessBuilder;
         private readonly ILogger _logger;
@@ -200,6 +201,7 @@ namespace HandyHansel
             await shardClient.SendMessageAsync(channel, embed: embed);
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<int> PrefixResolver(DiscordMessage msg)
         {
             using IBotAccessProvider dataAccessProvider = _accessBuilder.Build();
@@ -214,5 +216,6 @@ namespace HandyHansel
 
             return -1;
         }
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }
 }

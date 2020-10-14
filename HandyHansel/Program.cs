@@ -8,6 +8,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Npgsql;
+using Serilog;
+using Serilog.Exceptions;
+using Serilog.Formatting.Json;
 
 namespace HandyHansel
 {
@@ -20,9 +23,13 @@ namespace HandyHansel
 
         public static IHostBuilder CreateHostBuilder(string[] args)
             => Host.CreateDefaultBuilder(args)
+                .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
+                    .Enrich.FromLogContext()
+                    .WriteTo.RollingFile(new JsonFormatter(renderMessage: true), "log-{Date}.txt")
+                    .WriteTo.Console()
+                )
                 .ConfigureHostConfiguration(ConfigureHostConfiguration(args))
-                .ConfigureServices(ConfigureServices)
-                .ConfigureLogging(ConfigureLogging);
+                .ConfigureServices(ConfigureServices);
 
         public static Action<IConfigurationBuilder> ConfigureHostConfiguration(string[] args)
         {
@@ -64,18 +71,6 @@ namespace HandyHansel
                     opts.WorkerCount = 4;
                 })
                 .AddHostedService<NormHostedService>();
-        }
-
-        public static void ConfigureLogging(ILoggingBuilder logging)
-        {
-            logging.SetMinimumLevel(LogLevel.Information);
-
-            logging.AddConsole(console =>
-            {
-                console.Format = ConsoleLoggerFormat.Default;
-                console.TimestampFormat = "yyy-MM-dd HHH:mm:ss zzz";
-                console.LogToStandardErrorThreshold = LogLevel.Error;
-            });
         }
     }
 }
