@@ -37,8 +37,8 @@ namespace HandyHansel.Models
                     .Build();
 
                 BotConfig configJson = new BotConfig();
-                config.Bind(configJson);
-
+                config.GetSection(BotConfig.Section).Bind(configJson);
+                
                 NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
                 {
                     Host = configJson.Database.Host,
