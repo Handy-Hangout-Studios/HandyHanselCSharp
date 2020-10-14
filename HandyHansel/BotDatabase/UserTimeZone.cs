@@ -8,17 +8,15 @@ namespace HandyHansel.Models
     {
         [Key]
         [Column("id")]
-        // ReSharper disable once UnusedMember.Global
-        public int Id { get; set;  }
+        public int Id { get; set; }
 
-        [Column("user_id")]
+        [Column("user_id")] 
         public ulong UserId { get; set; }
-        
-        [Column("timezone_id")]
+
+        [Column("timezone_id")] 
         public string TimeZoneId { get; set; }
 
         [Column("operating_system")]
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public string OperatingSystem { get; set; }
     }
 }
