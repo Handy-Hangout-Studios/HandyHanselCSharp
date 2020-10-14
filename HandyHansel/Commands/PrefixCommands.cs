@@ -9,6 +9,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
+using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 
 namespace HandyHansel.Commands
@@ -74,7 +75,7 @@ namespace HandyHansel.Commands
         // ReSharper disable once UnusedMember.Global
         public async Task RemovePrefix(CommandContext context, string prefixToRemove)
         {
-            using IBotAccessProvider dataAccessProvider = new BotAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
             GuildPrefix guildPrefix = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)
                 .FirstOrDefault(e => e.Prefix.Equals(prefixToRemove));
             if (guildPrefix is null)

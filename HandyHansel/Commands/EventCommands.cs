@@ -12,6 +12,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
+using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;

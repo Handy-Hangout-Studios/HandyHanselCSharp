@@ -5,6 +5,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 
 namespace HandyHansel.Commands
@@ -16,17 +17,19 @@ namespace HandyHansel.Commands
     public class TimeCommands : BaseCommandModule
     {
         private readonly BotService _bot;
+        private readonly IBotAccessProviderBuilder _access;
 
-        public TimeCommands(BotService bot)
+        public TimeCommands(IBotAccessProviderBuilder providerBuilder, BotService bot)
         {
             _bot = bot;
+            _access = providerBuilder;
         }
 
         [GroupCommand]
         // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = new BotAccessPostgreSqlProvider(new PostgreSqlContext());
+            using IBotAccessProvider dataAccessProvider = _access.Build();
             if (dataAccessProvider.GetUsersTimeZone(context.User.Id) != null)
             {
                 await context.RespondAsync(
@@ -73,8 +76,7 @@ namespace HandyHansel.Commands
 
             if (!result.TimedOut && _bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
-                using IBotAccessProvider dataAccessProvider =
-                    new BotAccessPostgreSqlProvider(new PostgreSqlContext());
+                using IBotAccessProvider dataAccessProvider = _access.Build();
                 UserTimeZone updatedUserTimeZone = dataAccessProvider.GetUsersTimeZone(context.Message.Author.Id);
                 updatedUserTimeZone.TimeZoneId = result.Result.Content;
                 dataAccessProvider.UpdateUserTimeZone(updatedUserTimeZone);
