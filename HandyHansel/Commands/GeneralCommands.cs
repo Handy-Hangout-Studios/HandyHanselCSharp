@@ -8,12 +8,10 @@ using DSharpPlus.Interactivity.Extensions;
 
 namespace HandyHansel.Commands
 {
-    // ReSharper disable once ClassNeverInstantiated.Global
     public class GeneralCommands : BaseCommandModule
     {
         [Command("hi")]
         [Description("A basic \"Hello, World!\" command for D#+")]
-        // ReSharper disable once UnusedMember.Global
         public async Task Hi(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");

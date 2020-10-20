@@ -7,7 +7,6 @@ namespace HandyHansel.Models
 {
     public class PostgreSqlContext : DbContext
     {
-        // ReSharper disable once RedundantBaseConstructorCall
         public PostgreSqlContext() : base()
         {
         }

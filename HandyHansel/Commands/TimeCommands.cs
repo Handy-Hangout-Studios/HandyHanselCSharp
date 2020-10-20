@@ -13,7 +13,6 @@ namespace HandyHansel.Commands
     [Group("time")]
     [Description(
         "All commands associated with current time functionality.\n\nWhen used alone, perform initial set-up of user's timezone.")]
-    // ReSharper disable once ClassNeverInstantiated.Global
     public class TimeCommands : BaseCommandModule
     {
         private readonly BotService _bot;
@@ -26,7 +25,6 @@ namespace HandyHansel.Commands
         }
 
         [GroupCommand]
-        // ReSharper disable once UnusedMember.Global
         public async Task ExecuteGroupAsync(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = _access.Build();
@@ -65,7 +63,6 @@ namespace HandyHansel.Commands
 
         [Command("update")]
         [Description("Perform a time zone update process for the user who called update.")]
-        // ReSharper disable once UnusedMember.Global
         public async Task UpdateTimeZone(CommandContext context)
         {
             await context.RespondAsync(

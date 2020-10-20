@@ -21,7 +21,8 @@ namespace HandyHansel.Commands
 {
     [Group("event")]
     [Description(
-        "The event functionality's submodule.\n\nWhen used alone Handy Hansel will randomly choose an event and announce it to `@everyone`!")]
+        "The event functionality's submodule.")]
+    [RequirePermissions(Permissions.MentionEveryone)]
     public class EventCommands : BaseCommandModule
     {
         private static readonly Random Random = new Random();
@@ -39,9 +40,10 @@ namespace HandyHansel.Commands
             _bot = bot;
         }
 
-        [GroupCommand]
+        [Command("random")]
+        [Description("The bot will randomly choose an event and announce it to `@everyone`!")]
         [RequirePermissions(Permissions.Administrator)]
-        public async Task ExecuteGroupAsync(CommandContext context)
+        public async Task RandomEvent(CommandContext context)
         {
             // TODO: Add in an are you sure prompt.
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -240,7 +242,6 @@ namespace HandyHansel.Commands
         [Command("add")]
         [RequireUserPermissions(Permissions.Administrator)]
         [Description("Starts the set-up process for a new event to be added to the guild events for this server.")]
-        // ReSharper disable once UnusedMember.Global
         public async Task AddGuildEvent(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -298,7 +299,6 @@ namespace HandyHansel.Commands
         [Command("remove")]
         [RequireUserPermissions(Permissions.Administrator)]
         [Description("Removes an event from the guild's events.")]
-        // ReSharper disable once UnusedMember.Global
         public async Task RemoveGuildEvent(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -344,7 +344,6 @@ namespace HandyHansel.Commands
         [Command("show")]
         [RequireUserPermissions(Permissions.Administrator)]
         [Description("Shows a listing of all events currently available for this guild.")]
-        // ReSharper disable once UnusedMember.Global
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
