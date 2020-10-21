@@ -58,6 +58,12 @@ namespace HandyHansel.Commands
         [Command("add"), Description("Add prefix to guild's prefixes")]
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
+            if (newPrefix.Length < 1)
+            {
+                await context.RespondAsync("I'm sorry, but any new prefix must be at least one character.");
+                return;
+            }
+
             using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
             GuildPrefix newGuildPrefix = new GuildPrefix
             {
