@@ -13,7 +13,6 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.VoiceNext;
 using HandyHansel.Commands;
 using HandyHansel.Models;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -33,7 +32,7 @@ namespace HandyHansel
         private readonly ILogger _logger;
         
         public readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
-        public Dictionary<ulong, List<GuildBackgroundJob>> guildBackgroundJobs = new Dictionary<ulong, List<GuildBackgroundJob>>();
+        public Dictionary<ulong, Dictionary<int, GuildBackgroundJob>> guildBackgroundJobs = new Dictionary<ulong, Dictionary<int, GuildBackgroundJob>>();
 
         private DiscordEmoji _clock;
         private Parser _timeParser;
@@ -216,6 +215,22 @@ namespace HandyHansel
             }
         }
 
+        public async Task RemoveGuildBackgroundJob(ulong guildId, int jobId)
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    guildBackgroundJobs[guildId][jobId].CancellationTokenSource.Cancel();
+                    guildBackgroundJobs[guildId][jobId].CancellationTokenSource.Dispose();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Error in removing guild background job");
+                }
+                guildBackgroundJobs[guildId].Remove(jobId);
+            });
+        }
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<int> PrefixResolver(DiscordMessage msg)
         {
