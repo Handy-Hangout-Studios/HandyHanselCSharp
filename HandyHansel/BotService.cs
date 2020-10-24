@@ -36,8 +36,6 @@ namespace HandyHansel
 
         private DiscordEmoji _clock;
         private Parser _timeParser;
-        private DiscordEmoji Clock => _clock ?? SetClock();
-        private Parser TimeParser => _timeParser ?? SetTimeParser();
 
         public BotService(ILoggerFactory loggerFactory, IOptions<BotConfig> botConfig, IBotAccessProviderBuilder dataAccessProviderBuilder, IServiceProvider services)
         {
@@ -90,7 +88,8 @@ namespace HandyHansel
             _discord.Ready += UpdateDiscordStatus;
             
             await _discord.StartAsync();
-            
+            _clock = DiscordEmoji.FromName(_discord.ShardClients[0], ":clock:");
+            _timeParser = new Parser(_logger, Parser.ParserType.Time);
         }
 
         private async Task UpdateDiscordStatus(DiscordClient sender, ReadyEventArgs e)
@@ -105,30 +104,28 @@ namespace HandyHansel
 
         private  async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
-            DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
-                .AddField("Message", e.Exception.Message)
-                .AddField("StackTrace", e.Exception.StackTrace);
-            await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
-            _logger.LogError(e.Exception, "Exception from Command Errored");
-        }
-
-        private  DiscordEmoji SetClock()
-        {
-            return _clock ??= DiscordEmoji.FromName(_discord.ShardClients[0], ":clock:");
-        }
-
-        private  Parser SetTimeParser()
-        {
-            return _timeParser ??= new Parser(_logger, Parser.ParserType.Time);
+            await e.Context.Channel.SendMessageAsync("An error occurred");
+            try
+            {
+                DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
+                    .AddField("Message", e.Exception.Message)
+                    .AddField("StackTrace", e.Exception.StackTrace);
+                await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
+                _logger.LogError(e.Exception, "Exception from Command Errored");
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "An error occurred in sending the exception to the Dev");
+            }
         }
 
         private  async Task CheckForDate(DiscordClient c, MessageCreateEventArgs e)
         {
             if (e.Author.IsBot) return;
 
-            IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(e.Message.Content);
+            IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(e.Message.Content);
 
-            if (parserList.Count() != 0) await e.Message.CreateReactionAsync(Clock);
+            if (parserList.Count() != 0) await e.Message.CreateReactionAsync(_clock);
         }
 
         private  async Task SendAdjustedDate(DiscordClient c, MessageReactionAddEventArgs e)
@@ -141,11 +138,11 @@ namespace HandyHansel
                   if (e.User.IsBot) return;
 
                   using IBotAccessProvider database = _accessBuilder.Build();
-                  if (e.Emoji.Equals(Clock))
+                  if (e.Emoji.Equals(_clock))
                   {
                       DiscordChannel channel = await c.GetChannelAsync(e.Channel.Id);
                       DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
-                      IEnumerable<Tuple<string, DateTime>> parserList = TimeParser.DateTimeV2Parse(msg.Content);
+                      IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(msg.Content);
                       foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element =>
                           element.Item2 > DateTime.Now))
                       {
@@ -215,9 +212,10 @@ namespace HandyHansel
             }
         }
 
+        #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task RemoveGuildBackgroundJob(ulong guildId, int jobId)
         {
-            await Task.Run(() =>
+            _ = Task.Run(() =>
             {
                 try
                 {
@@ -231,8 +229,9 @@ namespace HandyHansel
                 guildBackgroundJobs[guildId].Remove(jobId);
             });
         }
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+
         private async Task<int> PrefixResolver(DiscordMessage msg)
+
         {
             using IBotAccessProvider dataAccessProvider = _accessBuilder.Build();
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(msg.Channel.GuildId).ToList();
@@ -246,6 +245,6 @@ namespace HandyHansel
 
             return -1;
         }
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }
 }
