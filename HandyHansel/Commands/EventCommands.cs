@@ -183,6 +183,7 @@ namespace HandyHansel.Commands
             CommandContext context
         )
         {
+            using IBotAccessProvider dap = this.dapBuilder.Build();
             InteractivityExtension interactivity = context.Client.GetInteractivity();
 
             DiscordMessage msg = await context.RespondAsync(
@@ -201,15 +202,21 @@ namespace HandyHansel.Commands
                 return;
             }
 
+            TimeZoneInfo memberTimeZone = _bot.SystemTimeZones[dap.GetUsersTimeZone(context.User.Id).TimeZoneId];
 
-            List<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[context.Guild.Id].Select(x => x.Value).Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT).ToList();
+            List<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[context.Guild.Id]
+                .Select(x => x.Value)
+                .Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT)
+                .ToList();
+
+            guildEventJobs.ForEach(x => x.ConvertTimeZoneTo(memberTimeZone));
 
             await context.RespondAsync("Ok, which event do you want to remove?");
 
             _ = interactivity.SendPaginatedMessageAsync(
                 context.Channel,
                 context.User,
-                GetScheduledEventsPages(guildEventJobs, interactivity),
+                this.GetScheduledEventsPages(guildEventJobs, interactivity),
                 behaviour: PaginationBehaviour.Ignore,
                 timeoutoverride: TimeSpan.FromMinutes(1));
 
@@ -379,7 +386,7 @@ namespace HandyHansel.Commands
             int count = 1;
             foreach (GuildBackgroundJob job in guildEventJobs)
             {
-                guildEventsStringBuilder.AppendLine($"{count}. {job.JobName}");
+                guildEventsStringBuilder.AppendLine($"{count}. {job.JobName} - {job.ScheduledTime:f}");
                 count++;
             }
 
