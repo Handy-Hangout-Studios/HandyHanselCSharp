@@ -11,6 +11,11 @@ namespace HandyHansel.Models
         public DateTime ScheduledTime;
         public GuildJobType GuildJobType;
         public CancellationTokenSource CancellationTokenSource;
+
+        public void ConvertTimeZoneTo(TimeZoneInfo timezone)
+        {
+            ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(ScheduledTime, timezone);
+        }
     }
 
     public enum GuildJobType

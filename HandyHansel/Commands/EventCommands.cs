@@ -21,7 +21,7 @@ namespace HandyHansel.Commands
 {
     [Group("event")]
     [Description(
-        "The event functionality's submodule.\n\nWhen used alone Handy Hansel will randomly choose an event and announce it to `@everyone`!")]
+        "The event functionality's submodule.")]
     public class EventCommands : BaseCommandModule
     {
         private static readonly Random Random = new Random();
@@ -39,9 +39,10 @@ namespace HandyHansel.Commands
             _bot = bot;
         }
 
-        [GroupCommand]
-        [RequirePermissions(Permissions.Administrator)]
-        public async Task ExecuteGroupAsync(CommandContext context)
+        [Command("random")]
+        [Description("The bot will randomly choose an event and announce it to `@everyone`!")]
+        [RequirePermissions(Permissions.MentionEveryone)]
+        public async Task RandomEvent(CommandContext context)
         {
             // TODO: Add in an are you sure prompt.
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -56,13 +57,14 @@ namespace HandyHansel.Commands
         }
 
         [Command("schedule")]
-        [RequireUserPermissions(Permissions.Administrator)]
         [Description("Schedule an event for the time passed in.")]
+        [RequirePermissions(Permissions.MentionEveryone)]
         public async Task ScheduleGuildEvent(
             CommandContext context,
             [Description("The channel to announce the event in")]
             DiscordChannel announcementChannel,
-            [Description("The date to schedule the event for")] [RemainingText]
+            [Description("The date to schedule the event for")] 
+            [RemainingText]
             string datetimeString
         )
         {
@@ -137,22 +139,21 @@ namespace HandyHansel.Commands
 
             if (!_bot.guildBackgroundJobs.ContainsKey(context.Guild.Id))
             {
-                _bot.guildBackgroundJobs[context.Guild.Id] = new List<GuildBackgroundJob>{ job };
+                _bot.guildBackgroundJobs[context.Guild.Id] = new Dictionary<int, GuildBackgroundJob>();
             }
 
-            _bot.guildBackgroundJobs[context.Guild.Id].Add(job);
+            _bot.guildBackgroundJobs[context.Guild.Id].Add(job.GetHashCode(), job);
 
             BackgroundJob.Schedule<BotService>(
-                bot
-                    => bot.SendEmbedWithMessageToChannelAsUser(
+                bot =>
+                    bot.SendEmbedWithMessageToChannelAsUser(
                             job.CancellationTokenSource.Token,
                             context.Guild.Id,
                             context.Member.Id,
                             announcementChannel.Id,
                             "@everyone, this event is starting now!",
                             selectedEvent.EventName,
-                            selectedEvent.EventDesc
-                        ), 
+                            selectedEvent.EventDesc), 
                 eventDateTime - DateTime.UtcNow);
 
 
@@ -168,15 +169,21 @@ namespace HandyHansel.Commands
                             selectedEvent.EventDesc
                         ),
                 eventDateTime - DateTime.UtcNow - TimeSpan.FromMinutes(10));
+
+            BackgroundJob.Schedule<BotService>(
+                bot =>
+                    bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode()),
+                eventDateTime - DateTime.UtcNow + TimeSpan.FromSeconds(5));
         }
 
         [Command("unschedule")]
-        [RequireUserPermissions(Permissions.Administrator)]
         [Description("Start the interactive unscheduling prompt.")]
+        [RequirePermissions(Permissions.MentionEveryone)]
         public async Task UnscheduleGuildEvent(
             CommandContext context
         )
         {
+            using IBotAccessProvider dap = this.dapBuilder.Build();
             InteractivityExtension interactivity = context.Client.GetInteractivity();
 
             DiscordMessage msg = await context.RespondAsync(
@@ -195,12 +202,21 @@ namespace HandyHansel.Commands
                 return;
             }
 
+            TimeZoneInfo memberTimeZone = _bot.SystemTimeZones[dap.GetUsersTimeZone(context.User.Id).TimeZoneId];
+
+            List<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[context.Guild.Id]
+                .Select(x => x.Value)
+                .Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT)
+                .ToList();
+
+            guildEventJobs.ForEach(x => x.ConvertTimeZoneTo(memberTimeZone));
+
             await context.RespondAsync("Ok, which event do you want to remove?");
 
             _ = interactivity.SendPaginatedMessageAsync(
                 context.Channel,
                 context.User,
-                GetScheduledEventsPages(context.Guild.Id, interactivity),
+                this.GetScheduledEventsPages(guildEventJobs, interactivity),
                 behaviour: PaginationBehaviour.Ignore,
                 timeoutoverride: TimeSpan.FromMinutes(1));
 
@@ -212,7 +228,7 @@ namespace HandyHansel.Commands
 
             if (result.TimedOut) return;
 
-            GuildBackgroundJob job = _bot.guildBackgroundJobs[context.Guild.Id][int.Parse(result.Result.Content) - 1];
+            GuildBackgroundJob job = guildEventJobs[int.Parse(result.Result.Content) - 1];
 
             msg = await context.RespondAsync($"{context.User.Mention}, are you sure you want to unschedule this event?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -231,16 +247,13 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            job.CancellationTokenSource.Cancel();
-            job.CancellationTokenSource.Dispose();
-            _bot.guildBackgroundJobs[context.Guild.Id].Remove(job);
+            await _bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode());
             await context.RespondAsync("Ok, it's been done");
         }
 
         [Command("add")]
-        [RequireUserPermissions(Permissions.Administrator)]
         [Description("Starts the set-up process for a new event to be added to the guild events for this server.")]
-        // ReSharper disable once UnusedMember.Global
+        [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task AddGuildEvent(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -296,9 +309,8 @@ namespace HandyHansel.Commands
         }
 
         [Command("remove")]
-        [RequireUserPermissions(Permissions.Administrator)]
         [Description("Removes an event from the guild's events.")]
-        // ReSharper disable once UnusedMember.Global
+        [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task RemoveGuildEvent(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
@@ -338,13 +350,11 @@ namespace HandyHansel.Commands
                     .ToList()[int.Parse(result.Result.Content) - 1];
 
             dataAccessProvider.DeleteGuildEvent(selectedEvent);
-            // TODO: Add response to person removing an event.
+            await context.RespondAsync($"You have deleted the \"{selectedEvent.EventName}\" event from the guild");
         }
 
         [Command("show")]
-        [RequireUserPermissions(Permissions.Administrator)]
         [Description("Shows a listing of all events currently available for this guild.")]
-        // ReSharper disable once UnusedMember.Global
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
@@ -369,15 +379,14 @@ namespace HandyHansel.Commands
             return interactivity.GeneratePagesInEmbed(guildEventsStringBuilder.ToString(), SplitType.Line);
         }
 
-        private IEnumerable<Page> GetScheduledEventsPages(ulong guildId, InteractivityExtension interactivity)
+        private IEnumerable<Page> GetScheduledEventsPages(IEnumerable<GuildBackgroundJob> guildEventJobs, InteractivityExtension interactivity)
         {
             StringBuilder guildEventsStringBuilder = new StringBuilder();
-            IEnumerable<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[guildId].Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT);
 
             int count = 1;
             foreach (GuildBackgroundJob job in guildEventJobs)
             {
-                guildEventsStringBuilder.AppendLine($"{count}. {job.JobName}");
+                guildEventsStringBuilder.AppendLine($"{count}. {job.JobName} - {job.ScheduledTime:f}");
                 count++;
             }
 

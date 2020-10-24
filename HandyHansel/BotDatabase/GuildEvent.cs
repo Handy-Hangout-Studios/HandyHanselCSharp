@@ -8,7 +8,6 @@ namespace HandyHansel.Models
     {
         [Key]
         [Column("id")]
-        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public int Id { get; set; }
 
         [Column("guild")] public ulong GuildId { get; set; }
