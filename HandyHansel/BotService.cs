@@ -13,6 +13,7 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.VoiceNext;
 using HandyHansel.Commands;
 using HandyHansel.Models;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -130,63 +131,67 @@ namespace HandyHansel
 
         private  async Task SendAdjustedDate(DiscordClient c, MessageReactionAddEventArgs e)
         {
-            DiscordMember reactor = (DiscordMember)e.User;
-            DiscordDmChannel channel = await reactor.CreateDmChannelAsync();
-            await channel.TriggerTypingAsync();
+            if (e.User.IsBot) return;
+            DiscordChannel channel = await c.GetChannelAsync(e.Channel.Id);
             _ = Task.Run(async () =>
-              {
-                  if (e.User.IsBot) return;
+            {
+                if (e.Emoji.Equals(_clock))
+                {
+                    using IBotAccessProvider database = _accessBuilder.Build();
+                    DiscordMember reactor = (DiscordMember)e.User;
+                    DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
+                    IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(msg.Content);
 
-                  using IBotAccessProvider database = _accessBuilder.Build();
-                  if (e.Emoji.Equals(_clock))
-                  {
-                      DiscordChannel channel = await c.GetChannelAsync(e.Channel.Id);
-                      DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
-                      IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(msg.Content);
-                      foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element =>
-                          element.Item2 > DateTime.Now))
-                      {
+                    if (!parserList.Any())
+                    {
+                        await e.Channel.SendMessageAsync("Hey, you're stupid, stop trying to react to messages that don't have times in them.");
+                        return;
+                    }
 
-                          try
-                          {
-                              string opTimeZoneId = database.GetUsersTimeZone(msg.Author.Id)?.TimeZoneId;
-                              string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId;
-                              if (opTimeZoneId is null)
-                              {
-                                  await channel.SendMessageAsync("The original poster has not set up a time zone yet.");
-                                  return;
-                              }
+                    DiscordEmbedBuilder reactorTimeEmbed = new DiscordEmbedBuilder()
+                                .WithTitle("You requested a timezone conversion");
 
-                              if (reactorTimeZoneId is null)
-                              {
-                                  await channel.SendMessageAsync("You have not set up a time zone yet.");
-                                  return;
-                              }
+                    try
+                    {
+                        foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element => element.Item2 > DateTime.Now))
+                        {
+                            string opTimeZoneId = database.GetUsersTimeZone(msg.Author.Id)?.TimeZoneId;
+                            string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId; 
+                              
+                            if (opTimeZoneId is null)
+                            {
+                                await channel.SendMessageAsync("The original poster has not set up a time zone yet.");
+                                return;
+                            }
 
-                              if (!SystemTimeZones.ContainsKey(opTimeZoneId) || !SystemTimeZones.ContainsKey(reactorTimeZoneId))
-                              {
-                                  await channel.SendMessageAsync(
-                                      "There was a problem, please reach out to your bot developer.");
-                                  return;
-                              }
+                            if (reactorTimeZoneId is null)
+                            {
+                                await channel.SendMessageAsync("You have not set up a time zone yet.");
+                                return;
+                            }
 
-                              TimeZoneInfo opTimeZone = SystemTimeZones[opTimeZoneId];
-                              TimeZoneInfo reactorTimeZone = SystemTimeZones[reactorTimeZoneId];
-                              DateTime reactorsTime = TimeZoneInfo.ConvertTime(parsedTime, opTimeZone, reactorTimeZone);
-                              DiscordEmbed reactorTimeEmbed = new DiscordEmbedBuilder()
-                                  .WithTitle("You requested a timezone conversion")
-                                  .AddField("Poster's Time", $"\"{parsedText}\"")
-                                  .AddField("Your time", $"{reactorsTime:t}");
+                            if (!SystemTimeZones.ContainsKey(opTimeZoneId) || !SystemTimeZones.ContainsKey(reactorTimeZoneId))
+                            {
+                                await channel.SendMessageAsync(
+                                    "There was a problem, please reach out to your bot developer.");
+                                return;
+                            }
 
-                              await channel.SendMessageAsync(embed: reactorTimeEmbed);
-                          }
-                          catch (Exception exception)
-                          {
-                              _logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
-                          }
-                      }
-                  }
-              });
+                            TimeZoneInfo opTimeZone = SystemTimeZones[opTimeZoneId];
+                            TimeZoneInfo reactorTimeZone = SystemTimeZones[reactorTimeZoneId];
+                            DateTime reactorsTime = TimeZoneInfo.ConvertTime(parsedTime, opTimeZone, reactorTimeZone);
+                            reactorTimeEmbed
+                                .AddField("Poster's Time", $"\"{parsedText}\"")
+                                .AddField("Your time", $"{reactorsTime:t}");
+                        }
+                        await reactor.SendMessageAsync(embed: reactorTimeEmbed);
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
+                    }
+                }
+            });
         }
 
         public  async Task SendEmbedWithMessageToChannelAsUser(CancellationToken token, ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
