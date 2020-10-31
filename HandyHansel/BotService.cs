@@ -293,7 +293,7 @@ namespace HandyHansel
             {
                 if (!_userKarmaAddition.Any(item => item.UserId == e.Author.Id && item.GuildId == e.Guild.Id))
                 {
-                    userGuildKarmaRecord.CurrentKarma += (ulong)_rng.Next(1, 3);
+                    userGuildKarmaRecord.CurrentKarma += (ulong)_rng.Next(1, 4);
                     _userKarmaAddition.Add(userGuildKarmaRecord);
                 }
             }

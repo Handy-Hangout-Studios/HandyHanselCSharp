@@ -141,8 +141,14 @@ namespace HandyHansel.Models
 
         public void BulkUpdateKarma(IEnumerable<GuildKarmaRecord> karmaRecords)
         {
-            _mContext.GuildKarmaRecords.UpdateRange(karmaRecords);
-            _mContext.SaveChanges();
+            if (!karmaRecords.Any()) return;
+            _mContext.Database.Execute((GuildKarmaRecord records) =>
+            {
+                var set = records.@using((records.Id, records.UserId, records.GuildId, records.CurrentKarma));
+                INSERT().INTO(set);
+                VALUES(set.RowsFrom(karmaRecords));
+                ON_CONFLICT(records.Id).DO_UPDATE().SET(() => records.CurrentKarma = EXCLUDED<GuildKarmaRecord>().CurrentKarma);
+            });
         }
 
         public void AddKarma(ulong userId, ulong guildId, ulong karma)

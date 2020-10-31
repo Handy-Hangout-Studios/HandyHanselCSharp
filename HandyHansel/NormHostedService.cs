@@ -9,7 +9,7 @@ namespace HandyHansel
 {
     class NormHostedService : IHostedService
     {
-        private BotService _discordBot;
+        private readonly BotService _discordBot;
         public NormHostedService(BotService bot)
         {
             _discordBot = bot;

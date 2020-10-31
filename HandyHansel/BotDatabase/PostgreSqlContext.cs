@@ -2,7 +2,10 @@
 using HandyHansel.BotDatabase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
+using Streamx.Linq.SQL.EFCore;
+using Streamx.Linq.SQL.PostgreSQL;
 
 namespace HandyHansel.Models
 {
@@ -12,9 +15,10 @@ namespace HandyHansel.Models
         {
         }
 
-        public PostgreSqlContext(string connectionString)
+        public PostgreSqlContext(string connectionString, ILoggerFactory loggerFactory)
         {
             DbConnectionString = connectionString;
+            _loggerFactory = loggerFactory;
         }
         
         public PostgreSqlContext(DbContextOptions<PostgreSqlContext> options) : base(options)
@@ -29,6 +33,7 @@ namespace HandyHansel.Models
         public DbSet<GuildBackgroundJob> GuildBackgroundJobs { get; private set; }
         
         private string DbConnectionString { get; set; }
+        private ILoggerFactory _loggerFactory { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -55,12 +60,15 @@ namespace HandyHansel.Models
                 DbConnectionString = connectionStringBuilder.ConnectionString;
             }
 
-            optionsBuilder.UseNpgsql(DbConnectionString);
+            optionsBuilder
+                .UseLoggerFactory(_loggerFactory)
+                .UseNpgsql(DbConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            ELinq.Configuration.RegisterVendorCapabilities();
         }
 
         public override int SaveChanges()

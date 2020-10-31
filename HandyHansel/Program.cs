@@ -27,7 +27,7 @@ namespace HandyHansel
                     .Enrich.FromLogContext()
                     .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
                     .WriteTo.Console()
-                    .MinimumLevel.Debug()
+                    .MinimumLevel.Information()
                 )
                 .ConfigureHostConfiguration(ConfigureHostConfiguration(args))
                 .ConfigureServices(ConfigureServices);

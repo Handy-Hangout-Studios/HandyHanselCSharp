@@ -17,12 +17,9 @@ namespace HandyHansel.Commands
 
         private readonly IBotAccessProviderBuilder providerBuilder;
 
-        private readonly BotService _bot;
-
-        public KarmaCommands(IBotAccessProviderBuilder builder, BotService bot)
+        public KarmaCommands(IBotAccessProviderBuilder builder)
         {
             providerBuilder = builder;
-            _bot = bot;
         }
 
         [GroupCommand]
