@@ -156,9 +156,10 @@ namespace HandyHansel
         {
             try
             {
+                int stackTraceLength = e.Exception.StackTrace.Length > 1024 ? 1024 : e.Exception.StackTrace.Length;
                 DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
                     .AddField("Message", e.Exception.Message ?? "")
-                    .AddField("StackTrace", e.Exception.StackTrace.Substring(0, 1024));
+                    .AddField("StackTrace", e.Exception.StackTrace.Substring(0, stackTraceLength));
                 await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
                 _logger.LogError(e.Exception, "Exception from Command Errored");
             }
