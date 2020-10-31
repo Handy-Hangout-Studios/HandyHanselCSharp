@@ -1,4 +1,5 @@
 ﻿using System;
+using HandyHansel.BotDatabase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
@@ -23,6 +24,9 @@ namespace HandyHansel.Models
         public DbSet<UserTimeZone> UserTimeZones { get; private set; }
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         public DbSet<GuildPrefix> GuildPrefixes { get; private set; }
+        public DbSet<GuildKarmaRecord> GuildKarmaRecords { get; private set; }
+        public DbSet<UserCard> UserCards { get; private set; }
+        public DbSet<GuildBackgroundJob> GuildBackgroundJobs { get; private set; }
         
         private string DbConnectionString { get; set; }
 

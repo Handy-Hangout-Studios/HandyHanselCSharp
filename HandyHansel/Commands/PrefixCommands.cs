@@ -16,7 +16,6 @@ namespace HandyHansel.Commands
 {
     [Group("prefix")]
     [Description("All functionalities associated with prefixes in Handy Hansel.\n\nWhen used alone, show all guild's prefixes separated by spaces")]
-    [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
     public class PrefixCommands : BaseCommandModule
     {
         private readonly IBotAccessProviderBuilder botAccessProvider;
@@ -56,6 +55,7 @@ namespace HandyHansel.Commands
         }
         
         [Command("add"), Description("Add prefix to guild's prefixes")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
             if (newPrefix.Length < 1)
@@ -65,18 +65,14 @@ namespace HandyHansel.Commands
             }
 
             using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
-            GuildPrefix newGuildPrefix = new GuildPrefix
-            {
-                Prefix = newPrefix,
-                GuildId = context.Guild.Id,
-            };
-            dataAccessProvider.AddGuildPrefix(newGuildPrefix);
+            dataAccessProvider.AddGuildPrefix(context.Guild.Id, newPrefix);
             await context.RespondAsync(
                 $"Congratulations, you have added the prefix {newPrefix} to your server's prefixes for Handy Hansel.\nJust a reminder, this disables the default prefix for Handy Hansel unless you specifically add that prefix in again later or do not have any prefixes of your own.");
         }
 
         [Command("remove")]
         [Description("Remove a prefix from the guild's prefixes")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task RemovePrefix(CommandContext context, string prefixToRemove)
         {
             using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
@@ -96,6 +92,7 @@ namespace HandyHansel.Commands
 
         [Command("iremove")]
         [Description("Starts an interactive removal process allowing you to choose which prefix to remove")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task InteractiveRemovePrefix(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();

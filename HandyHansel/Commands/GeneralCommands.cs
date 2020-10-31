@@ -25,6 +25,7 @@ namespace HandyHansel.Commands
 
         [Command("break")]
         [Description("Purposefully throw an error for testing purposes")]
+        [RequireOwner]
         [Hidden]
         public async Task Break(CommandContext context)
         {

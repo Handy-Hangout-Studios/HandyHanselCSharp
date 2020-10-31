@@ -26,7 +26,7 @@ namespace HandyHansel.Commands
     {
         private static readonly Random Random = new Random();
 
-        private readonly IBotAccessProviderBuilder dapBuilder;
+        private readonly IBotAccessProviderBuilder accessBuilder;
 
         private readonly Parser parser;
 
@@ -34,7 +34,7 @@ namespace HandyHansel.Commands
 
         public EventCommands(IBotAccessProviderBuilder builder, BotService bot, ILoggerFactory loggerFactory)
         {
-            dapBuilder = builder;
+            accessBuilder = builder;
             parser = new Parser(loggerFactory.CreateLogger("Event Commands Date Parser"), parserTypes: Parser.ParserType.DateTime);
             _bot = bot;
         }
@@ -45,8 +45,8 @@ namespace HandyHansel.Commands
         public async Task RandomEvent(CommandContext context)
         {
             // TODO: Add in an are you sure prompt.
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
-            List<GuildEvent> guildEvents = dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
+            using IBotAccessProvider provider = accessBuilder.Build();
+            List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
             GuildEvent selectedEvent = guildEvents[Random.Next(guildEvents.Count)];
             DiscordEmbedBuilder eventEmbedBuilder = new DiscordEmbedBuilder();
             eventEmbedBuilder
@@ -68,13 +68,19 @@ namespace HandyHansel.Commands
             string datetimeString
         )
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider provider = accessBuilder.Build();
 
-            UserTimeZone userTimeZone = dataAccessProvider.GetUsersTimeZone(context.User.Id);
+            UserTimeZone userTimeZone = provider.GetUsersTimeZone(context.User.Id);
             if (userTimeZone == null)
             {
                 await context.RespondAsync(
                     $"{context.User.Mention}, you don't have your time set up... I'm not much use without your timezone set up. Please set up your timezone by typing ^time before you waste my time anymore.");
+                return;
+            }
+            DiscordMember botMember = await context.Guild.GetMemberAsync(context.Client.CurrentUser.Id);
+            if (!announcementChannel.PermissionsFor(botMember).HasPermission(Permissions.MentionEveryone | Permissions.SendMessages))
+            {
+                await context.RespondAsync($"{context.User.Mention}, I don't have permission to send messages and mention `@everyone` in that channel.");
                 return;
             }
 
@@ -102,7 +108,7 @@ namespace HandyHansel.Commands
             await context.RespondAsync("Ok, which event do you want to schedule?");
 
             _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User,
-                GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
+                GetGuildEventsPages(context.Guild.Id, interactivity, provider),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
 
             await context.RespondAsync("Choose an event by typing: <event number>");
@@ -116,7 +122,7 @@ namespace HandyHansel.Commands
             if (result.TimedOut)
                 await context.RespondAsync("You didn't respond in time to select an event. I didn't schedule anything.");
 
-            GuildEvent selectedEvent = dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList()[int.Parse(result.Result.Content) - 1];
+            GuildEvent selectedEvent = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList()[int.Parse(result.Result.Content) - 1];
 
             
             DateTime eventDateTime = TimeZoneInfo.ConvertTimeToUtc(datetime, schedulerTimeZoneInfo);
@@ -129,25 +135,10 @@ namespace HandyHansel.Commands
                 .Build();
 
             await context.RespondAsync(embed: embed);
-            GuildBackgroundJob job = new GuildBackgroundJob
-            {
-                JobName = selectedEvent.EventName,
-                ScheduledTime = eventDateTime,
-                CancellationTokenSource = new CancellationTokenSource(),
-                GuildJobType = GuildJobType.SCHEDULED_EVENT
-            };
 
-            if (!_bot.guildBackgroundJobs.ContainsKey(context.Guild.Id))
-            {
-                _bot.guildBackgroundJobs[context.Guild.Id] = new Dictionary<int, GuildBackgroundJob>();
-            }
-
-            _bot.guildBackgroundJobs[context.Guild.Id].Add(job.GetHashCode(), job);
-
-            BackgroundJob.Schedule<BotService>(
+            string scheduledJobId = BackgroundJob.Schedule<BotService>(
                 bot =>
                     bot.SendEmbedWithMessageToChannelAsUser(
-                            job.CancellationTokenSource.Token,
                             context.Guild.Id,
                             context.Member.Id,
                             announcementChannel.Id,
@@ -156,11 +147,11 @@ namespace HandyHansel.Commands
                             selectedEvent.EventDesc), 
                 eventDateTime - DateTime.UtcNow);
 
+            provider.AddGuildBackgroundJob(scheduledJobId, context.Guild.Id, $"{selectedEvent.EventName} - Announcement", eventDateTime, GuildJobType.SCHEDULED_EVENT);
 
-            BackgroundJob.Schedule<BotService>(
+            scheduledJobId = BackgroundJob.Schedule<BotService>(
                 bot
                     => bot.SendEmbedWithMessageToChannelAsUser(
-                            job.CancellationTokenSource.Token,
                             context.Guild.Id,
                             context.Member.Id,
                             announcementChannel.Id,
@@ -170,10 +161,7 @@ namespace HandyHansel.Commands
                         ),
                 eventDateTime - DateTime.UtcNow - TimeSpan.FromMinutes(10));
 
-            BackgroundJob.Schedule<BotService>(
-                bot =>
-                    bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode()),
-                eventDateTime - DateTime.UtcNow + TimeSpan.FromSeconds(5));
+            provider.AddGuildBackgroundJob(scheduledJobId, context.Guild.Id, $"{selectedEvent.EventName} - 10 Min Announcement", eventDateTime - TimeSpan.FromMinutes(10), GuildJobType.SCHEDULED_EVENT);
         }
 
         [Command("unschedule")]
@@ -183,7 +171,7 @@ namespace HandyHansel.Commands
             CommandContext context
         )
         {
-            using IBotAccessProvider dap = this.dapBuilder.Build();
+            using IBotAccessProvider provider = this.accessBuilder.Build();
             InteractivityExtension interactivity = context.Client.GetInteractivity();
 
             DiscordMessage msg = await context.RespondAsync(
@@ -202,10 +190,9 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            TimeZoneInfo memberTimeZone = _bot.SystemTimeZones[dap.GetUsersTimeZone(context.User.Id).TimeZoneId];
+            TimeZoneInfo memberTimeZone = _bot.SystemTimeZones[provider.GetUsersTimeZone(context.User.Id).TimeZoneId];
 
-            List<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[context.Guild.Id]
-                .Select(x => x.Value)
+            List<GuildBackgroundJob> guildEventJobs = provider.GetAllAssociatedGuildBackgroundJobs(context.Guild.Id)
                 .Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT)
                 .ToList();
 
@@ -246,8 +233,8 @@ namespace HandyHansel.Commands
                 await context.RespondAsync("Well then why did you get my attention! Thanks for wasting my time.");
                 return;
             }
-
-            await _bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode());
+            BackgroundJob.Delete(job.HangfireJobId);
+            provider.DeleteGuildBackgroundJob(job);
             await context.RespondAsync("Ok, it's been done");
         }
 
@@ -256,7 +243,7 @@ namespace HandyHansel.Commands
         [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task AddGuildEvent(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider provider = accessBuilder.Build();
             DiscordMessage msg =
                 await context.RespondAsync($":wave: Hi, {context.User.Mention}! You wanted to create a new event?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -290,18 +277,11 @@ namespace HandyHansel.Commands
 
             string eventDesc = result.Result.Content;
 
-            GuildEvent newEvent = new GuildEvent
-            {
-                EventName = eventName,
-                EventDesc = eventDesc,
-                GuildId = context.Guild.Id,
-            };
-
-            dataAccessProvider.AddGuildEvent(newEvent);
+            provider.AddGuildEvent(context.Guild.Id, eventName, eventDesc);
             DiscordEmbed embed = new DiscordEmbedBuilder()
                 .WithAuthor(context.Client.CurrentUser.Username, iconUrl: context.Client.CurrentUser.AvatarUrl)
-                .WithDescription(newEvent.EventDesc)
-                .WithTitle(newEvent.EventName)
+                .WithDescription(eventDesc)
+                .WithTitle(eventName)
                 .Build();
 
             await context.RespondAsync("You have added the following event to your guild:");
@@ -313,7 +293,7 @@ namespace HandyHansel.Commands
         [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task RemoveGuildEvent(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider provider = accessBuilder.Build();
             DiscordMessage msg = await context.RespondAsync(
                 $":wave: Hi, {context.User.Mention}! You want to remove an event from your guild list?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -334,7 +314,7 @@ namespace HandyHansel.Commands
             await context.RespondAsync("Ok, which event do you want to remove?");
 
             _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User,
-                GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
+                GetGuildEventsPages(context.Guild.Id, interactivity, provider),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
 
             await context.RespondAsync("Choose an event by typing: <event number>");
@@ -346,10 +326,10 @@ namespace HandyHansel.Commands
             if (result.TimedOut) return;
 
             GuildEvent selectedEvent =
-                dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id)
+                provider.GetAllAssociatedGuildEvents(context.Guild.Id)
                     .ToList()[int.Parse(result.Result.Content) - 1];
 
-            dataAccessProvider.DeleteGuildEvent(selectedEvent);
+            provider.DeleteGuildEvent(selectedEvent);
             await context.RespondAsync($"You have deleted the \"{selectedEvent.EventName}\" event from the guild");
         }
 
@@ -359,7 +339,7 @@ namespace HandyHansel.Commands
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
                 GetGuildEventsPages(context.Guild.Id, context.Client.GetInteractivity(),
-                    dapBuilder.Build()),
+                    accessBuilder.Build()),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
         }
 
@@ -374,6 +354,11 @@ namespace HandyHansel.Commands
             {
                 guildEventsStringBuilder.AppendLine($"{count}. {guildEvent.EventName}");
                 count++;
+            }
+
+            if (!guildEvents.Any())
+            {
+                guildEventsStringBuilder.AppendLine("This guild doesn't have any defined events.");
             }
 
             return interactivity.GeneratePagesInEmbed(guildEventsStringBuilder.ToString(), SplitType.Line);

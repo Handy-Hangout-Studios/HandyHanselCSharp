@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.VoiceNext;
+using HandyHansel.BotDatabase;
 using HandyHansel.Commands;
 using HandyHansel.Models;
 using Hangfire;
@@ -33,7 +38,10 @@ namespace HandyHansel
         private readonly ILogger _logger;
         
         public readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
-        public Dictionary<ulong, Dictionary<int, GuildBackgroundJob>> guildBackgroundJobs = new Dictionary<ulong, Dictionary<int, GuildBackgroundJob>>();
+        
+        private readonly ISet<GuildKarmaRecord> _userKarmaAddition = new HashSet<GuildKarmaRecord>();
+        private readonly object _karmaLock = new object();
+        private readonly Random _rng = new Random();
 
         private DiscordEmoji _clock;
         private Parser _timeParser;
@@ -46,6 +54,7 @@ namespace HandyHansel
                 TokenType = TokenType.Bot,
                 MinimumLogLevel = LogLevel.Information,
                 LoggerFactory = loggerFactory,
+                Intents = DiscordIntents.All,
             };
 
             _commandsConfig = new CommandsNextConfiguration
@@ -81,9 +90,12 @@ namespace HandyHansel
                 pair.Value.RegisterCommands<TimeCommands>();
                 pair.Value.RegisterCommands<EventCommands>();
                 pair.Value.RegisterCommands<PrefixCommands>();
+                pair.Value.RegisterCommands<KarmaCommands>();
+                pair.Value.CommandErrored += ChecksFailedError;
                 pair.Value.CommandErrored += LogExceptions;
             }
 
+            _discord.MessageCreated += EarnKarma;
             _discord.MessageCreated += CheckForDate;
             _discord.MessageReactionAdded += SendAdjustedDate;
             _discord.Ready += UpdateDiscordStatus;
@@ -91,11 +103,14 @@ namespace HandyHansel
             await _discord.StartAsync();
             _clock = DiscordEmoji.FromName(_discord.ShardClients[0], ":clock:");
             _timeParser = new Parser(_logger, Parser.ParserType.Time);
+
+            RecurringJob.AddOrUpdate<BotService>(bot =>
+                bot.UpdateKarmas(), "0/1 * * * *");
         }
 
         private async Task UpdateDiscordStatus(DiscordClient sender, ReadyEventArgs e)
         {
-            await _discord.UpdateStatusAsync(new DiscordActivity("all the users in disappointment", ActivityType.Watching));
+            await _discord.UpdateStatusAsync(new DiscordActivity("all the users in anticipation", ActivityType.Watching));
         }
 
         public async Task StopAsync()
@@ -103,14 +118,47 @@ namespace HandyHansel
             await _discord.StopAsync();
         }
 
+        private async Task ChecksFailedError(CommandsNextExtension c, CommandErrorEventArgs e)
+        {
+            if (e.Exception is ChecksFailedException checksFailed)
+            {
+                var failedChecks = checksFailed.FailedChecks;
+
+                string DetermineMessage()
+                {
+                    if (failedChecks.Any(x => x is RequireBotPermissionsAttribute))
+                    {
+                        return "I don't have the permissions necessary";
+                    }
+                    if (failedChecks.Any(x => x is RequireUserPermissionsAttribute))
+                    {
+                        return "you don't have the permissions necessary";
+                    }
+                    if (failedChecks.Any(x => x is CooldownAttribute))
+                    {
+                        CooldownAttribute cooldown = failedChecks.First(x => x is CooldownAttribute) as CooldownAttribute;
+                        return $"this command is on cooldown for {cooldown.GetRemainingCooldown(e.Context):hh\\:mm\\:ss}";
+                    }
+                    if (failedChecks.Any(x => x is RequireOwnerAttribute))
+                    {
+                        return "this command can only be used by the Bot's owner";
+                    }
+
+                    return "The check failed is unknown";
+                }
+
+                await e.Context.RespondAsync($"You can't use `{e.Command.QualifiedName}` because {DetermineMessage()}.");
+                e.Handled = true;
+            }
+        }
+
         private  async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
-            await e.Context.Channel.SendMessageAsync("An error occurred");
             try
             {
                 DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
-                    .AddField("Message", e.Exception.Message)
-                    .AddField("StackTrace", e.Exception.StackTrace);
+                    .AddField("Message", e.Exception.Message ?? "")
+                    .AddField("StackTrace", e.Exception.StackTrace.Substring(0, 1024));
                 await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
                 _logger.LogError(e.Exception, "Exception from Command Errored");
             }
@@ -194,11 +242,10 @@ namespace HandyHansel
             });
         }
 
-        public  async Task SendEmbedWithMessageToChannelAsUser(CancellationToken token, ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
+        public  async Task SendEmbedWithMessageToChannelAsUser(ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
         {
             try
             {
-                if (token.IsCancellationRequested) return;
                 DiscordClient shardClient = _discord.GetShard(guildId);
                 DiscordChannel channel = await shardClient.GetChannelAsync(channelId);
                 DiscordUser poster = await shardClient.GetUserAsync(userId);
@@ -218,22 +265,6 @@ namespace HandyHansel
         }
 
         #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async Task RemoveGuildBackgroundJob(ulong guildId, int jobId)
-        {
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    guildBackgroundJobs[guildId][jobId].CancellationTokenSource.Cancel();
-                    guildBackgroundJobs[guildId][jobId].CancellationTokenSource.Dispose();
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Error in removing guild background job");
-                }
-                guildBackgroundJobs[guildId].Remove(jobId);
-            });
-        }
 
         private async Task<int> PrefixResolver(DiscordMessage msg)
 
@@ -249,6 +280,32 @@ namespace HandyHansel
             }
 
             return -1;
+        }
+
+        private async Task EarnKarma(DiscordClient client, MessageCreateEventArgs e)
+        {
+            if (e.Author.IsBot) return;
+
+            using IBotAccessProvider provider = _accessBuilder.Build();
+            GuildKarmaRecord userGuildKarmaRecord = provider.GetUsersGuildKarmaRecord(e.Author.Id, e.Guild.Id);
+            lock (_karmaLock)
+            {
+                if (!_userKarmaAddition.Any(item => item.UserId == e.Author.Id && item.GuildId == e.Guild.Id))
+                {
+                    userGuildKarmaRecord.CurrentKarma += (ulong)_rng.Next(1, 3);
+                    _userKarmaAddition.Add(userGuildKarmaRecord);
+                }
+            }
+        }
+
+        public async Task UpdateKarmas()
+        {
+            using IBotAccessProvider provider = _accessBuilder.Build();
+            lock(_karmaLock)
+            {
+                provider.BulkUpdateKarma(_userKarmaAddition);
+                _userKarmaAddition.Clear();
+            }
         }
         #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }
