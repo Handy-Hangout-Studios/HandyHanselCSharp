@@ -1,11 +1,11 @@
-﻿using System;
-using HandyHansel.BotDatabase;
+﻿using HandyHansel.BotDatabase;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Streamx.Linq.SQL.EFCore;
 using Streamx.Linq.SQL.PostgreSQL;
+using System;
 
 namespace HandyHansel.Models
 {
@@ -17,10 +17,10 @@ namespace HandyHansel.Models
 
         public PostgreSqlContext(string connectionString, ILoggerFactory loggerFactory)
         {
-            DbConnectionString = connectionString;
-            _loggerFactory = loggerFactory;
+            this.DbConnectionString = connectionString;
+            this._loggerFactory = loggerFactory;
         }
-        
+
         public PostgreSqlContext(DbContextOptions<PostgreSqlContext> options) : base(options)
         {
         }
@@ -31,13 +31,13 @@ namespace HandyHansel.Models
         public DbSet<GuildKarmaRecord> GuildKarmaRecords { get; private set; }
         public DbSet<UserCard> UserCards { get; private set; }
         public DbSet<GuildBackgroundJob> GuildBackgroundJobs { get; private set; }
-        
+
         private string DbConnectionString { get; set; }
         private ILoggerFactory _loggerFactory { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (string.IsNullOrWhiteSpace(DbConnectionString))
+            if (string.IsNullOrWhiteSpace(this.DbConnectionString))
             {
                 IConfigurationRoot config = new ConfigurationBuilder()
                     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
@@ -46,7 +46,7 @@ namespace HandyHansel.Models
 
                 BotConfig configJson = new BotConfig();
                 config.GetSection(BotConfig.Section).Bind(configJson);
-                
+
                 NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
                 {
                     Host = configJson.Database.Host,
@@ -57,12 +57,12 @@ namespace HandyHansel.Models
                     Pooling = configJson.Database.Pooling,
                 };
 
-                DbConnectionString = connectionStringBuilder.ConnectionString;
+                this.DbConnectionString = connectionStringBuilder.ConnectionString;
             }
 
             optionsBuilder
-                .UseLoggerFactory(_loggerFactory)
-                .UseNpgsql(DbConnectionString);
+                .UseLoggerFactory(this._loggerFactory)
+                .UseNpgsql(this.DbConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -73,7 +73,7 @@ namespace HandyHansel.Models
 
         public override int SaveChanges()
         {
-            ChangeTracker.DetectChanges();
+            this.ChangeTracker.DetectChanges();
             return base.SaveChanges();
         }
     }

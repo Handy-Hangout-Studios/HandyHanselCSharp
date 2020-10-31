@@ -1,10 +1,10 @@
-﻿using System;
-using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
+using System;
+using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
@@ -20,7 +20,9 @@ namespace HandyHansel.Commands
                 xm => xm.Author.Id == context.User.Id && xm.Content.ToLower() == "how are you?",
                 TimeSpan.FromMinutes(1));
             if (!result.TimedOut)
+            {
                 await context.RespondAsync("I'm fine, thank you!");
+            }
         }
 
         [Command("break")]

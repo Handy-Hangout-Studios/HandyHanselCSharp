@@ -10,10 +10,10 @@ namespace HandyHansel.Models
         [Column("id")]
         public int Id { get; set; }
 
-        [Column("user_id")] 
+        [Column("user_id")]
         public ulong UserId { get; set; }
 
-        [Column("timezone_id")] 
+        [Column("timezone_id")]
         public string TimeZoneId { get; set; }
 
         [Column("operating_system")]

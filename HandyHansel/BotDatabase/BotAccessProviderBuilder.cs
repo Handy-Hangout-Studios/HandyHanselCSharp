@@ -17,13 +17,13 @@ namespace HandyHansel.Models
                 Password = config.Value.Database.Password,
                 Pooling = config.Value.Database.Pooling,
             };
-            _connectionString = connectionStringBuilder.ConnectionString;
-            _loggerFactory = loggerFactory;
+            this._connectionString = connectionStringBuilder.ConnectionString;
+            this._loggerFactory = loggerFactory;
         }
 
         public IBotAccessProvider Build()
         {
-            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(_connectionString, _loggerFactory));
+            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(this._connectionString, this._loggerFactory));
         }
 
         private readonly string _connectionString;

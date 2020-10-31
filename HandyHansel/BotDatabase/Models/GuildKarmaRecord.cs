@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HandyHansel.BotDatabase
 {
@@ -10,7 +7,7 @@ namespace HandyHansel.BotDatabase
     public class GuildKarmaRecord
     {
         [Key, Column("id")] public int Id { get; set; }
-        
+
         [Column("user_id")] public ulong UserId { get; set; }
 
         [Column("guild_id")] public ulong GuildId { get; set; }

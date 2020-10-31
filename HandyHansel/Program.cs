@@ -1,36 +1,37 @@
-﻿using System;
-using HandyHansel.Models;
+﻿using HandyHansel.Models;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using Npgsql;
 using Serilog;
-using Serilog.Exceptions;
 using Serilog.Formatting.Json;
+using System;
 
 namespace HandyHansel
 {
     public static class Program
     {
         public static void Main(string[] args)
-            => CreateHostBuilder(args)
-                .Build()
-                .Run();
+        {
+            CreateHostBuilder(args)
+                           .Build()
+                           .Run();
+        }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
-            => Host.CreateDefaultBuilder(args)
-                .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
-                    .Enrich.FromLogContext()
-                    .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
-                    .WriteTo.Console()
-                    .MinimumLevel.Information()
-                )
-                .ConfigureHostConfiguration(ConfigureHostConfiguration(args))
-                .ConfigureServices(ConfigureServices);
+        {
+            return Host.CreateDefaultBuilder(args)
+                           .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
+                               .Enrich.FromLogContext()
+                               .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
+                               .WriteTo.Console()
+                               .MinimumLevel.Information()
+                           )
+                           .ConfigureHostConfiguration(ConfigureHostConfiguration(args))
+                           .ConfigureServices(ConfigureServices);
+        }
 
         public static Action<IConfigurationBuilder> ConfigureHostConfiguration(string[] args)
         {

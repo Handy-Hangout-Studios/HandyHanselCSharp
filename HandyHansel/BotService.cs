@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using DSharpPlus;
+﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.CommandsNext.Exceptions;
@@ -21,6 +14,10 @@ using HandyHansel.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HandyHansel
 {
@@ -36,9 +33,9 @@ namespace HandyHansel
         private IReadOnlyDictionary<int, InteractivityExtension> _interactivity;
         private readonly IBotAccessProviderBuilder _accessBuilder;
         private readonly ILogger _logger;
-        
+
         public readonly Dictionary<string, TimeZoneInfo> SystemTimeZones = TimeZoneInfo.GetSystemTimeZones().ToDictionary(tz => tz.Id);
-        
+
         private readonly ISet<GuildKarmaRecord> _userKarmaAddition = new HashSet<GuildKarmaRecord>();
         private readonly object _karmaLock = new object();
         private readonly Random _rng = new Random();
@@ -57,7 +54,7 @@ namespace HandyHansel
                 Intents = DiscordIntents.All,
             };
 
-            _commandsConfig = new CommandsNextConfiguration
+            this._commandsConfig = new CommandsNextConfiguration
             {
                 PrefixResolver = PrefixResolver,
                 Services = services,
@@ -65,44 +62,44 @@ namespace HandyHansel
                 EnableMentionPrefix = true,
             };
 
-            _interactivityConfig = new InteractivityConfiguration
+            this._interactivityConfig = new InteractivityConfiguration
             {
                 PaginationBehaviour = PaginationBehaviour.Ignore,
                 Timeout = TimeSpan.FromMinutes(2),
             };
 
 
-            _discord = new DiscordShardedClient(ClientConfig);
-            _devUserId = botConfig.Value.DevId;
-            _logger = loggerFactory.CreateLogger("BotService");
-            _accessBuilder = dataAccessProviderBuilder;
+            this._discord = new DiscordShardedClient(ClientConfig);
+            this._devUserId = botConfig.Value.DevId;
+            this._logger = loggerFactory.CreateLogger("BotService");
+            this._accessBuilder = dataAccessProviderBuilder;
         }
 
         public async Task StartAsync()
         {
-            _commands = await _discord.UseCommandsNextAsync(_commandsConfig);
-            _interactivity = await _discord.UseInteractivityAsync(_interactivityConfig);
-            IReadOnlyDictionary<int, VoiceNextExtension> test = await _discord.UseVoiceNextAsync(new VoiceNextConfiguration());
+            this._commands = await this._discord.UseCommandsNextAsync(this._commandsConfig);
+            this._interactivity = await this._discord.UseInteractivityAsync(this._interactivityConfig);
+            IReadOnlyDictionary<int, VoiceNextExtension> test = await this._discord.UseVoiceNextAsync(new VoiceNextConfiguration());
 
-            foreach (KeyValuePair<int, CommandsNextExtension> pair in _commands)
+            foreach (KeyValuePair<int, CommandsNextExtension> pair in this._commands)
             {
                 pair.Value.RegisterCommands<GeneralCommands>();
                 pair.Value.RegisterCommands<TimeCommands>();
                 pair.Value.RegisterCommands<EventCommands>();
                 pair.Value.RegisterCommands<PrefixCommands>();
                 pair.Value.RegisterCommands<KarmaCommands>();
-                pair.Value.CommandErrored += ChecksFailedError;
-                pair.Value.CommandErrored += LogExceptions;
+                pair.Value.CommandErrored += this.ChecksFailedError;
+                pair.Value.CommandErrored += this.LogExceptions;
             }
 
-            _discord.MessageCreated += EarnKarma;
-            _discord.MessageCreated += CheckForDate;
-            _discord.MessageReactionAdded += SendAdjustedDate;
-            _discord.Ready += UpdateDiscordStatus;
-            
-            await _discord.StartAsync();
-            _clock = DiscordEmoji.FromName(_discord.ShardClients[0], ":clock:");
-            _timeParser = new Parser(_logger, Parser.ParserType.Time);
+            this._discord.MessageCreated += this.EarnKarma;
+            this._discord.MessageCreated += this.CheckForDate;
+            this._discord.MessageReactionAdded += this.SendAdjustedDate;
+            this._discord.Ready += this.UpdateDiscordStatus;
+
+            await this._discord.StartAsync();
+            this._clock = DiscordEmoji.FromName(this._discord.ShardClients[0], ":clock:");
+            this._timeParser = new Parser(this._logger, Parser.ParserType.Time);
 
             RecurringJob.AddOrUpdate<BotService>(bot =>
                 bot.UpdateKarmas(), "0/1 * * * *");
@@ -110,19 +107,19 @@ namespace HandyHansel
 
         private async Task UpdateDiscordStatus(DiscordClient sender, ReadyEventArgs e)
         {
-            await _discord.UpdateStatusAsync(new DiscordActivity("all the users in anticipation", ActivityType.Watching));
+            await this._discord.UpdateStatusAsync(new DiscordActivity("all the users in anticipation", ActivityType.Watching));
         }
 
         public async Task StopAsync()
         {
-            await _discord.StopAsync();
+            await this._discord.StopAsync();
         }
 
         private async Task ChecksFailedError(CommandsNextExtension c, CommandErrorEventArgs e)
         {
             if (e.Exception is ChecksFailedException checksFailed)
             {
-                var failedChecks = checksFailed.FailedChecks;
+                IReadOnlyList<CheckBaseAttribute> failedChecks = checksFailed.FailedChecks;
 
                 string DetermineMessage()
                 {
@@ -152,7 +149,7 @@ namespace HandyHansel
             }
         }
 
-        private  async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
+        private async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
             try
             {
@@ -160,36 +157,46 @@ namespace HandyHansel
                 DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
                     .AddField("Message", e.Exception.Message ?? "")
                     .AddField("StackTrace", e.Exception.StackTrace.Substring(0, stackTraceLength));
-                await e.Context.Guild.Members[_devUserId].SendMessageAsync(embed: commandErrorEmbed);
-                _logger.LogError(e.Exception, "Exception from Command Errored");
+                await e.Context.Guild.Members[this._devUserId].SendMessageAsync(embed: commandErrorEmbed);
+                this._logger.LogError(e.Exception, "Exception from Command Errored");
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "An error occurred in sending the exception to the Dev");
+                this._logger.LogError(exception, "An error occurred in sending the exception to the Dev");
             }
         }
 
-        private  async Task CheckForDate(DiscordClient c, MessageCreateEventArgs e)
+        private async Task CheckForDate(DiscordClient c, MessageCreateEventArgs e)
         {
-            if (e.Author.IsBot) return;
+            if (e.Author.IsBot)
+            {
+                return;
+            }
 
-            IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(e.Message.Content);
+            IEnumerable<Tuple<string, DateTime>> parserList = this._timeParser.DateTimeV2Parse(e.Message.Content);
 
-            if (parserList.Count() != 0) await e.Message.CreateReactionAsync(_clock);
+            if (parserList.Count() != 0)
+            {
+                await e.Message.CreateReactionAsync(this._clock);
+            }
         }
 
-        private  async Task SendAdjustedDate(DiscordClient c, MessageReactionAddEventArgs e)
+        private async Task SendAdjustedDate(DiscordClient c, MessageReactionAddEventArgs e)
         {
-            if (e.User.IsBot) return;
+            if (e.User.IsBot)
+            {
+                return;
+            }
+
             DiscordChannel channel = await c.GetChannelAsync(e.Channel.Id);
             _ = Task.Run(async () =>
             {
-                if (e.Emoji.Equals(_clock))
+                if (e.Emoji.Equals(this._clock))
                 {
-                    using IBotAccessProvider database = _accessBuilder.Build();
+                    using IBotAccessProvider database = this._accessBuilder.Build();
                     DiscordMember reactor = (DiscordMember)e.User;
                     DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
-                    IEnumerable<Tuple<string, DateTime>> parserList = _timeParser.DateTimeV2Parse(msg.Content);
+                    IEnumerable<Tuple<string, DateTime>> parserList = this._timeParser.DateTimeV2Parse(msg.Content);
 
                     if (!parserList.Any())
                     {
@@ -205,8 +212,8 @@ namespace HandyHansel
                         foreach ((string parsedText, DateTime parsedTime) in parserList.Where(element => element.Item2 > DateTime.Now))
                         {
                             string opTimeZoneId = database.GetUsersTimeZone(msg.Author.Id)?.TimeZoneId;
-                            string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId; 
-                              
+                            string reactorTimeZoneId = database.GetUsersTimeZone(e.User.Id)?.TimeZoneId;
+
                             if (opTimeZoneId is null)
                             {
                                 await channel.SendMessageAsync("The original poster has not set up a time zone yet.");
@@ -219,15 +226,15 @@ namespace HandyHansel
                                 return;
                             }
 
-                            if (!SystemTimeZones.ContainsKey(opTimeZoneId) || !SystemTimeZones.ContainsKey(reactorTimeZoneId))
+                            if (!this.SystemTimeZones.ContainsKey(opTimeZoneId) || !this.SystemTimeZones.ContainsKey(reactorTimeZoneId))
                             {
                                 await channel.SendMessageAsync(
                                     "There was a problem, please reach out to your bot developer.");
                                 return;
                             }
 
-                            TimeZoneInfo opTimeZone = SystemTimeZones[opTimeZoneId];
-                            TimeZoneInfo reactorTimeZone = SystemTimeZones[reactorTimeZoneId];
+                            TimeZoneInfo opTimeZone = this.SystemTimeZones[opTimeZoneId];
+                            TimeZoneInfo reactorTimeZone = this.SystemTimeZones[reactorTimeZoneId];
                             DateTime reactorsTime = TimeZoneInfo.ConvertTime(parsedTime, opTimeZone, reactorTimeZone);
                             reactorTimeEmbed
                                 .AddField("Poster's Time", $"\"{parsedText}\"")
@@ -237,20 +244,20 @@ namespace HandyHansel
                     }
                     catch (Exception exception)
                     {
-                        _logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
+                        this._logger.Log(LogLevel.Error, exception, "Error in sending reactor the DM");
                     }
                 }
             });
         }
 
-        public  async Task SendEmbedWithMessageToChannelAsUser(ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
+        public async Task SendEmbedWithMessageToChannelAsUser(ulong guildId, ulong userId, ulong channelId, string message, string title, string description)
         {
             try
             {
-                DiscordClient shardClient = _discord.GetShard(guildId);
+                DiscordClient shardClient = this._discord.GetShard(guildId);
                 DiscordChannel channel = await shardClient.GetChannelAsync(channelId);
                 DiscordUser poster = await shardClient.GetUserAsync(userId);
-                _discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}", DateTime.Now);
+                this._discord.Logger.Log(LogLevel.Information, "Timer", $"Timer has sent embed to {channel.Name}", DateTime.Now);
                 DiscordEmbed embed = new DiscordEmbedBuilder()
                         .WithTitle(title)
                         .WithAuthor(poster.Username, iconUrl: poster.AvatarUrl)
@@ -261,19 +268,22 @@ namespace HandyHansel
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error in Sending Embed", guildId, userId, message, title, description);
+                this._logger.LogError(e, "Error in Sending Embed", guildId, userId, message, title, description);
             }
         }
 
-        #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
         private async Task<int> PrefixResolver(DiscordMessage msg)
 
         {
-            using IBotAccessProvider dataAccessProvider = _accessBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this._accessBuilder.Build();
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(msg.Channel.GuildId).ToList();
 
-            if (!guildPrefixes.Any()) return msg.GetStringPrefixLength("^");
+            if (!guildPrefixes.Any())
+            {
+                return msg.GetStringPrefixLength("^");
+            }
 
             foreach (int length in guildPrefixes.Select(prefix => msg.GetStringPrefixLength(prefix.Prefix)).Where(length => length != -1))
             {
@@ -285,29 +295,32 @@ namespace HandyHansel
 
         private async Task EarnKarma(DiscordClient client, MessageCreateEventArgs e)
         {
-            if (e.Author.IsBot) return;
-
-            using IBotAccessProvider provider = _accessBuilder.Build();
-            GuildKarmaRecord userGuildKarmaRecord = provider.GetUsersGuildKarmaRecord(e.Author.Id, e.Guild.Id);
-            lock (_karmaLock)
+            if (e.Author.IsBot)
             {
-                if (!_userKarmaAddition.Any(item => item.UserId == e.Author.Id && item.GuildId == e.Guild.Id))
+                return;
+            }
+
+            using IBotAccessProvider provider = this._accessBuilder.Build();
+            GuildKarmaRecord userGuildKarmaRecord = provider.GetUsersGuildKarmaRecord(e.Author.Id, e.Guild.Id);
+            lock (this._karmaLock)
+            {
+                if (!this._userKarmaAddition.Any(item => item.UserId == e.Author.Id && item.GuildId == e.Guild.Id))
                 {
-                    userGuildKarmaRecord.CurrentKarma += (ulong)_rng.Next(1, 4);
-                    _userKarmaAddition.Add(userGuildKarmaRecord);
+                    userGuildKarmaRecord.CurrentKarma += (ulong)this._rng.Next(1, 4);
+                    this._userKarmaAddition.Add(userGuildKarmaRecord);
                 }
             }
         }
 
         public async Task UpdateKarmas()
         {
-            using IBotAccessProvider provider = _accessBuilder.Build();
-            lock(_karmaLock)
+            using IBotAccessProvider provider = this._accessBuilder.Build();
+            lock (this._karmaLock)
             {
-                provider.BulkUpdateKarma(_userKarmaAddition);
-                _userKarmaAddition.Clear();
+                provider.BulkUpdateKarma(this._userKarmaAddition);
+                this._userKarmaAddition.Clear();
             }
         }
-        #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }
 }

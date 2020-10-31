@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
-using System.Threading;
 
 namespace HandyHansel.Models
 {
@@ -28,7 +25,7 @@ namespace HandyHansel.Models
 
         public void ConvertTimeZoneTo(TimeZoneInfo timezone)
         {
-            ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(ScheduledTime, timezone);
+            this.ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(this.ScheduledTime, timezone);
         }
     }
 
