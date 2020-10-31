@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HandyHansel.BotDatabase;
+using System;
 using System.Collections.Generic;
 
 namespace HandyHansel.Models
@@ -8,13 +9,11 @@ namespace HandyHansel.Models
         #region User Time Zones
 
         /// <summary>
-        ///     Adds a new user time zone to the database
+        ///     Creates and adds a new user time zone to the database.
         /// </summary>
-        /// <param name="userTimeZone">
-        ///     An object that stores a user id, time zone id, and operating system that this guildTimeZone
-        ///     will belong to
-        /// </param>
-        void AddUserTimeZone(UserTimeZone userTimeZone);
+        /// <param name="userId">The Discord User Id</param>
+        /// <param name="timeZoneId">The Users Timezone Id</param>
+        void AddUserTimeZone(ulong userId, string timeZoneId);
 
         /// <summary>
         ///     Update a users time zone
@@ -52,7 +51,7 @@ namespace HandyHansel.Models
         ///     Add a new guild event to the database
         /// </summary>
         /// <param name="guildEvent">Guild event object that has the guild id, the event name, and the event desc</param>
-        void AddGuildEvent(GuildEvent guildEvent);
+        void AddGuildEvent(ulong guildId, string eventName, string eventDesc);
 
         /// <summary>
         ///     Delete a guild event from the database
@@ -75,7 +74,7 @@ namespace HandyHansel.Models
         ///     Add a guild prefix to the database
         /// </summary>
         /// <param name="prefix">A guild prefix object with prefix and guild id</param>
-        void AddGuildPrefix(GuildPrefix prefix);
+        void AddGuildPrefix(ulong guildId, string prefix);
 
         /// <summary>
         ///     Delete a guild prefix from the database
@@ -90,6 +89,67 @@ namespace HandyHansel.Models
         /// <returns>enumerable of all guild prefixes associated with guild id</returns>
         IEnumerable<GuildPrefix> GetAllAssociatedGuildPrefixes(ulong guildId);
 
+        #endregion
+
+        #region Guild Background Jobs
+
+        /// <summary>
+        ///  Adds a Guild Background job for use in deleting scheduled jobs.
+        /// </summary>
+        /// <param name="hangfireJobId">The job id created by Hangfire when scheduling a job</param>
+        /// <param name="guildId">The guild id associated with the job</param>
+        /// <param name="jobName">The name associated with the job</param>
+        /// <param name="scheduledTime">The time the job is scheduled to run</param>
+        /// <param name="guildJobType">The kind of job that's being scheduled</param>
+        void AddGuildBackgroundJob(string hangfireJobId, ulong guildId, string jobName, DateTime scheduledTime, GuildJobType guildJobType);
+
+        /// <summary>
+        /// Deletes the specified Guild Background Job
+        /// </summary>
+        /// <param name="job">The Guild Background Job to delete</param>
+        void DeleteGuildBackgroundJob(GuildBackgroundJob job);
+
+        /// <summary>
+        /// Retrieves a list of all Guild Background Jobs associated with a guild
+        /// </summary>
+        /// <param name="guildId">The Guild ID for the Jobs to fetch</param>
+        /// <returns></returns>
+        IEnumerable<GuildBackgroundJob> GetAllAssociatedGuildBackgroundJobs(ulong guildId);
+        #endregion
+
+        #region Karma Records
+
+        /// <summary>
+        ///  Update all Karma Records in the list and create new ones for any that don't currently exist in the database.
+        /// </summary>
+        /// <param name="karmaRecords">List of Karma Records to Add and Update</param>
+        void BulkUpdateKarma(IEnumerable<GuildKarmaRecord> karmaRecords);
+
+        /// <summary>
+        /// Add Karma to Users Guild Karma Record
+        /// </summary>
+        /// <param name="userId">User to Update</param>
+        /// <param name="guildId">Guild Record to Update</param>
+        /// <param name="karma">Karma to Add</param>
+        void AddKarma(ulong userId, ulong guildId, ulong karma);
+
+        /// <summary>
+        /// Get users Guild Karma Record
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="guildId">Guild ID</param>
+        /// <returns></returns>
+        GuildKarmaRecord GetUsersGuildKarmaRecord(ulong userId, ulong guildId);
+        #endregion
+
+        #region User Cards
+
+        /// <summary>
+        /// Retrieves the User's user card info and creates a user card record for them if they don't currently have one.
+        /// </summary>
+        /// <param name="userId">The user to fetch the user card for.</param>
+        /// <returns></returns>
+        UserCard GetUsersUserCard(ulong userId);
         #endregion
     }
 }

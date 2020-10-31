@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -11,29 +6,33 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
     [Group("prefix")]
     [Description("All functionalities associated with prefixes in Handy Hansel.\n\nWhen used alone, show all guild's prefixes separated by spaces")]
-    [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
     public class PrefixCommands : BaseCommandModule
     {
         private readonly IBotAccessProviderBuilder botAccessProvider;
 
         public PrefixCommands(IBotAccessProviderBuilder accessProviderBuilder)
         {
-            botAccessProvider = accessProviderBuilder;
+            this.botAccessProvider = accessProviderBuilder;
         }
 
         [GroupCommand]
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
-            string prefixString; 
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
+            string prefixString;
             List<GuildPrefix> guildPrefixes = dataAccessProvider
                 .GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
-            if(!guildPrefixes.Any())
+            if (!guildPrefixes.Any())
             {
                 prefixString = "^";
             }
@@ -45,17 +44,18 @@ namespace HandyHansel.Commands
             {
                 prefixString = guildPrefixes
                     .Select(
-                        prefix => 
+                        prefix =>
                             prefix.Prefix)
                     .Aggregate(
-                        (partial, next) 
+                        (partial, next)
                             => $"{partial} {next}");
             }
-            
+
             await context.RespondAsync($"{context.User.Mention}, the prefixes are: {prefixString}");
         }
-        
+
         [Command("add"), Description("Add prefix to guild's prefixes")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
             if (newPrefix.Length < 1)
@@ -64,22 +64,18 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
-            GuildPrefix newGuildPrefix = new GuildPrefix
-            {
-                Prefix = newPrefix,
-                GuildId = context.Guild.Id,
-            };
-            dataAccessProvider.AddGuildPrefix(newGuildPrefix);
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
+            dataAccessProvider.AddGuildPrefix(context.Guild.Id, newPrefix);
             await context.RespondAsync(
                 $"Congratulations, you have added the prefix {newPrefix} to your server's prefixes for Handy Hansel.\nJust a reminder, this disables the default prefix for Handy Hansel unless you specifically add that prefix in again later or do not have any prefixes of your own.");
         }
 
         [Command("remove")]
         [Description("Remove a prefix from the guild's prefixes")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task RemovePrefix(CommandContext context, string prefixToRemove)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
             GuildPrefix guildPrefix = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)
                 .FirstOrDefault(e => e.Prefix.Equals(prefixToRemove));
             if (guildPrefix is null)
@@ -96,9 +92,10 @@ namespace HandyHansel.Commands
 
         [Command("iremove")]
         [Description("Starts an interactive removal process allowing you to choose which prefix to remove")]
+        [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task InteractiveRemovePrefix(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
 
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
             if (!guildPrefixes.Any())
@@ -136,7 +133,10 @@ namespace HandyHansel.Commands
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
                 TimeSpan.FromMinutes(1));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             GuildPrefix selectedPrefix =
                 dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)

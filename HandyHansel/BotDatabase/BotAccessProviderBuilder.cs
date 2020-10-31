@@ -1,11 +1,12 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace HandyHansel.Models
 {
     public class BotAccessProviderBuilder : IBotAccessProviderBuilder
     {
-        public BotAccessProviderBuilder(IOptions<BotConfig> config)
+        public BotAccessProviderBuilder(IOptions<BotConfig> config, ILoggerFactory loggerFactory)
         {
             NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
             {
@@ -16,14 +17,16 @@ namespace HandyHansel.Models
                 Password = config.Value.Database.Password,
                 Pooling = config.Value.Database.Pooling,
             };
-            _connectionString = connectionStringBuilder.ConnectionString;
+            this._connectionString = connectionStringBuilder.ConnectionString;
+            this._loggerFactory = loggerFactory;
         }
 
         public IBotAccessProvider Build()
         {
-            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(_connectionString));
+            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(this._connectionString, this._loggerFactory));
         }
 
         private readonly string _connectionString;
+        private readonly ILoggerFactory _loggerFactory;
     }
 }
