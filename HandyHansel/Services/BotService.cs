@@ -11,7 +11,6 @@ using DSharpPlus.VoiceNext;
 using HandyHansel.BotDatabase;
 using HandyHansel.Commands;
 using HandyHansel.Models;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
