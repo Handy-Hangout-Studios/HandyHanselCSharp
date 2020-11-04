@@ -5,7 +5,6 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 using System;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
@@ -44,20 +43,18 @@ namespace HandyHansel.Commands
 
             if (!result.TimedOut && this._bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
-                UserTimeZone newUserTimeZone = new UserTimeZone
-                {
-                    UserId = context.Message.Author.Id,
-                    TimeZoneId = result.Result.Content,
-                    OperatingSystem = RuntimeInformation.OSDescription,
-                };
-                dataAccessProvider.AddUserTimeZone(newUserTimeZone);
+                dataAccessProvider.AddUserTimeZone(context.Message.Author.Id, result.Result.Content);
                 await context.RespondAsync(
                     $"I set your timezone as {result.Result.Content} in all guilds I am a member of.");
             }
-            else
+            else if (result.TimedOut)
             {
                 await context.RespondAsync(
-                    "You either waited too long to respond or gave me invalid input for the timezone.");
+                    "You waited too long to respond.");
+            }
+            else if (!this._bot.SystemTimeZones.ContainsKey(result.Result.Content))
+            {
+                await context.RespondAsync("You provided me with an invalid timezone. Try again by typing ^time.");
             }
         }
 

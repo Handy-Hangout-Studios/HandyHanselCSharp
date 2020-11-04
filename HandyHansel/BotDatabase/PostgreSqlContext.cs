@@ -1,6 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using HandyHansel.BotDatabase;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
+using Streamx.Linq.SQL.EFCore;
+using Streamx.Linq.SQL.PostgreSQL;
 using System;
 
 namespace HandyHansel.Models
@@ -11,9 +15,10 @@ namespace HandyHansel.Models
         {
         }
 
-        public PostgreSqlContext(string connectionString)
+        public PostgreSqlContext(string connectionString, ILoggerFactory loggerFactory)
         {
             this.DbConnectionString = connectionString;
+            this._loggerFactory = loggerFactory;
         }
 
         public PostgreSqlContext(DbContextOptions<PostgreSqlContext> options) : base(options)
@@ -23,8 +28,12 @@ namespace HandyHansel.Models
         public DbSet<UserTimeZone> UserTimeZones { get; private set; }
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         public DbSet<GuildPrefix> GuildPrefixes { get; private set; }
+        public DbSet<GuildKarmaRecord> GuildKarmaRecords { get; private set; }
+        public DbSet<UserCard> UserCards { get; private set; }
+        public DbSet<GuildBackgroundJob> GuildBackgroundJobs { get; private set; }
 
         private string DbConnectionString { get; set; }
+        private ILoggerFactory _loggerFactory { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -51,12 +60,15 @@ namespace HandyHansel.Models
                 this.DbConnectionString = connectionStringBuilder.ConnectionString;
             }
 
-            optionsBuilder.UseNpgsql(this.DbConnectionString);
+            optionsBuilder
+                .UseLoggerFactory(this._loggerFactory)
+                .UseNpgsql(this.DbConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            ELinq.Configuration.RegisterVendorCapabilities();
         }
 
         public override int SaveChanges()

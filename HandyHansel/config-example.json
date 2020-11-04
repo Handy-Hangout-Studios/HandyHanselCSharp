@@ -1,0 +1,24 @@
+﻿{
+  "BotConfig": {
+    "BotToken": "",
+    "DevId": "",
+    "Database": {
+      "Host": "",
+      "Port": 1234,
+      "Name": "",
+      "Username": "",
+      "Password": "",
+      "Pooling": true
+    }
+  },
+  "HangfireConfig": {
+    "Database": {
+      "Host": "",
+      "Port": 1234,
+      "Name": "",
+      "Username": "",
+      "Password": "",
+      "Pooling": true
+    }
+  }
+}

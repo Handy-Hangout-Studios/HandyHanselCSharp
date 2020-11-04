@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HandyHansel.BotDatabase
 {
     [Table("all_user_guild_karma_records")]
-    public class KarmaRecord
+    public class GuildKarmaRecord
     {
         [Key, Column("id")] public int Id { get; set; }
 
