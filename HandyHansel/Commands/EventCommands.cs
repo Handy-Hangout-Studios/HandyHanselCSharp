@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using DSharpPlus;
+﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -16,6 +9,12 @@ using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 using Hangfire;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
@@ -34,9 +33,9 @@ namespace HandyHansel.Commands
 
         public EventCommands(IBotAccessProviderBuilder builder, BotService bot, ILoggerFactory loggerFactory)
         {
-            dapBuilder = builder;
-            parser = new Parser(loggerFactory.CreateLogger("Event Commands Date Parser"), parserTypes: Parser.ParserType.DateTime);
-            _bot = bot;
+            this.dapBuilder = builder;
+            this.parser = new Parser(loggerFactory.CreateLogger("Event Commands Date Parser"), parserTypes: Parser.ParserType.DateTime);
+            this._bot = bot;
         }
 
         [Command("random")]
@@ -45,7 +44,7 @@ namespace HandyHansel.Commands
         public async Task RandomEvent(CommandContext context)
         {
             // TODO: Add in an are you sure prompt.
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this.dapBuilder.Build();
             List<GuildEvent> guildEvents = dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
             GuildEvent selectedEvent = guildEvents[Random.Next(guildEvents.Count)];
             DiscordEmbedBuilder eventEmbedBuilder = new DiscordEmbedBuilder();
@@ -63,12 +62,12 @@ namespace HandyHansel.Commands
             CommandContext context,
             [Description("The channel to announce the event in")]
             DiscordChannel announcementChannel,
-            [Description("The date to schedule the event for")] 
+            [Description("The date to schedule the event for")]
             [RemainingText]
             string datetimeString
         )
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this.dapBuilder.Build();
 
             UserTimeZone userTimeZone = dataAccessProvider.GetUsersTimeZone(context.User.Id);
             if (userTimeZone == null)
@@ -78,9 +77,9 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            TimeZoneInfo schedulerTimeZoneInfo = _bot.SystemTimeZones[userTimeZone.TimeZoneId];
+            TimeZoneInfo schedulerTimeZoneInfo = this._bot.SystemTimeZones[userTimeZone.TimeZoneId];
 
-            DateTime datetime = parser.DateTimeV2DateTimeParse(datetimeString, schedulerTimeZoneInfo);
+            DateTime datetime = this.parser.DateTimeV2DateTimeParse(datetimeString, schedulerTimeZoneInfo);
             DiscordMessage msg = await context.RespondAsync(
                 $":wave: Hi, {context.User.Mention}! You want to schedule an event for {datetime:g} in your timezone?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -102,7 +101,7 @@ namespace HandyHansel.Commands
             await context.RespondAsync("Ok, which event do you want to schedule?");
 
             _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User,
-                GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
+                this.GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
 
             await context.RespondAsync("Choose an event by typing: <event number>");
@@ -114,11 +113,13 @@ namespace HandyHansel.Commands
                 TimeSpan.FromMinutes(1));
 
             if (result.TimedOut)
+            {
                 await context.RespondAsync("You didn't respond in time to select an event. I didn't schedule anything.");
+            }
 
             GuildEvent selectedEvent = dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList()[int.Parse(result.Result.Content) - 1];
 
-            
+
             DateTime eventDateTime = TimeZoneInfo.ConvertTimeToUtc(datetime, schedulerTimeZoneInfo);
 
             await context.RespondAsync($"You have scheduled the following event for {datetime:g} in your time zone to be output in the {announcementChannel.Mention} channel.");
@@ -137,12 +138,12 @@ namespace HandyHansel.Commands
                 GuildJobType = GuildJobType.SCHEDULED_EVENT
             };
 
-            if (!_bot.guildBackgroundJobs.ContainsKey(context.Guild.Id))
+            if (!this._bot.guildBackgroundJobs.ContainsKey(context.Guild.Id))
             {
-                _bot.guildBackgroundJobs[context.Guild.Id] = new Dictionary<int, GuildBackgroundJob>();
+                this._bot.guildBackgroundJobs[context.Guild.Id] = new Dictionary<int, GuildBackgroundJob>();
             }
 
-            _bot.guildBackgroundJobs[context.Guild.Id].Add(job.GetHashCode(), job);
+            this._bot.guildBackgroundJobs[context.Guild.Id].Add(job.GetHashCode(), job);
 
             BackgroundJob.Schedule<BotService>(
                 bot =>
@@ -153,7 +154,7 @@ namespace HandyHansel.Commands
                             announcementChannel.Id,
                             "@everyone, this event is starting now!",
                             selectedEvent.EventName,
-                            selectedEvent.EventDesc), 
+                            selectedEvent.EventDesc),
                 eventDateTime - DateTime.UtcNow);
 
 
@@ -202,9 +203,9 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            TimeZoneInfo memberTimeZone = _bot.SystemTimeZones[dap.GetUsersTimeZone(context.User.Id).TimeZoneId];
+            TimeZoneInfo memberTimeZone = this._bot.SystemTimeZones[dap.GetUsersTimeZone(context.User.Id).TimeZoneId];
 
-            List<GuildBackgroundJob> guildEventJobs = _bot.guildBackgroundJobs[context.Guild.Id]
+            List<GuildBackgroundJob> guildEventJobs = this._bot.guildBackgroundJobs[context.Guild.Id]
                 .Select(x => x.Value)
                 .Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT)
                 .ToList();
@@ -226,7 +227,10 @@ namespace HandyHansel.Commands
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
                 TimeSpan.FromMinutes(1));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             GuildBackgroundJob job = guildEventJobs[int.Parse(result.Result.Content) - 1];
 
@@ -247,7 +251,7 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            await _bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode());
+            await this._bot.RemoveGuildBackgroundJob(context.Guild.Id, job.GetHashCode());
             await context.RespondAsync("Ok, it's been done");
         }
 
@@ -256,7 +260,7 @@ namespace HandyHansel.Commands
         [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task AddGuildEvent(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this.dapBuilder.Build();
             DiscordMessage msg =
                 await context.RespondAsync($":wave: Hi, {context.User.Mention}! You wanted to create a new event?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -278,7 +282,10 @@ namespace HandyHansel.Commands
             InteractivityResult<DiscordMessage> result = await
                 interactivity.WaitForMessageAsync(xm => xm.Author.Equals(context.User));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             string eventName = result.Result.Content;
 
@@ -286,7 +293,10 @@ namespace HandyHansel.Commands
             result = await
                 interactivity.WaitForMessageAsync(xm => xm.Author.Equals(context.User));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             string eventDesc = result.Result.Content;
 
@@ -313,7 +323,7 @@ namespace HandyHansel.Commands
         [RequireUserPermissions(Permissions.ManageGuild)]
         public async Task RemoveGuildEvent(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = dapBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this.dapBuilder.Build();
             DiscordMessage msg = await context.RespondAsync(
                 $":wave: Hi, {context.User.Mention}! You want to remove an event from your guild list?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
@@ -334,7 +344,7 @@ namespace HandyHansel.Commands
             await context.RespondAsync("Ok, which event do you want to remove?");
 
             _ = interactivity.SendPaginatedMessageAsync(context.Channel, context.User,
-                GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
+                this.GetGuildEventsPages(context.Guild.Id, interactivity, dataAccessProvider),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
 
             await context.RespondAsync("Choose an event by typing: <event number>");
@@ -343,7 +353,10 @@ namespace HandyHansel.Commands
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
                 TimeSpan.FromMinutes(1));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             GuildEvent selectedEvent =
                 dataAccessProvider.GetAllAssociatedGuildEvents(context.Guild.Id)
@@ -358,8 +371,8 @@ namespace HandyHansel.Commands
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
-                GetGuildEventsPages(context.Guild.Id, context.Client.GetInteractivity(),
-                    dapBuilder.Build()),
+                this.GetGuildEventsPages(context.Guild.Id, context.Client.GetInteractivity(),
+                    this.dapBuilder.Build()),
                 behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
         }
 

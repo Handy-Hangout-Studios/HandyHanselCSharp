@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -11,6 +6,11 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
@@ -23,17 +23,17 @@ namespace HandyHansel.Commands
 
         public PrefixCommands(IBotAccessProviderBuilder accessProviderBuilder)
         {
-            botAccessProvider = accessProviderBuilder;
+            this.botAccessProvider = accessProviderBuilder;
         }
 
         [GroupCommand]
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
-            string prefixString; 
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
+            string prefixString;
             List<GuildPrefix> guildPrefixes = dataAccessProvider
                 .GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
-            if(!guildPrefixes.Any())
+            if (!guildPrefixes.Any())
             {
                 prefixString = "^";
             }
@@ -45,16 +45,16 @@ namespace HandyHansel.Commands
             {
                 prefixString = guildPrefixes
                     .Select(
-                        prefix => 
+                        prefix =>
                             prefix.Prefix)
                     .Aggregate(
-                        (partial, next) 
+                        (partial, next)
                             => $"{partial} {next}");
             }
-            
+
             await context.RespondAsync($"{context.User.Mention}, the prefixes are: {prefixString}");
         }
-        
+
         [Command("add"), Description("Add prefix to guild's prefixes")]
         public async Task AddPrefix(CommandContext context, string newPrefix)
         {
@@ -64,7 +64,7 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
             GuildPrefix newGuildPrefix = new GuildPrefix
             {
                 Prefix = newPrefix,
@@ -79,7 +79,7 @@ namespace HandyHansel.Commands
         [Description("Remove a prefix from the guild's prefixes")]
         public async Task RemovePrefix(CommandContext context, string prefixToRemove)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
             GuildPrefix guildPrefix = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)
                 .FirstOrDefault(e => e.Prefix.Equals(prefixToRemove));
             if (guildPrefix is null)
@@ -98,7 +98,7 @@ namespace HandyHansel.Commands
         [Description("Starts an interactive removal process allowing you to choose which prefix to remove")]
         public async Task InteractiveRemovePrefix(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = botAccessProvider.Build();
+            using IBotAccessProvider dataAccessProvider = this.botAccessProvider.Build();
 
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id).ToList();
             if (!guildPrefixes.Any())
@@ -136,7 +136,10 @@ namespace HandyHansel.Commands
                 xm => int.TryParse(xm.Content, out _) && xm.Author.Equals(context.User),
                 TimeSpan.FromMinutes(1));
 
-            if (result.TimedOut) return;
+            if (result.TimedOut)
+            {
+                return;
+            }
 
             GuildPrefix selectedPrefix =
                 dataAccessProvider.GetAllAssociatedGuildPrefixes(context.Guild.Id)

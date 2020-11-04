@@ -1,7 +1,7 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using System;
 
 namespace HandyHansel.Models
 {
@@ -13,9 +13,9 @@ namespace HandyHansel.Models
 
         public PostgreSqlContext(string connectionString)
         {
-            DbConnectionString = connectionString;
+            this.DbConnectionString = connectionString;
         }
-        
+
         public PostgreSqlContext(DbContextOptions<PostgreSqlContext> options) : base(options)
         {
         }
@@ -23,12 +23,12 @@ namespace HandyHansel.Models
         public DbSet<UserTimeZone> UserTimeZones { get; private set; }
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         public DbSet<GuildPrefix> GuildPrefixes { get; private set; }
-        
+
         private string DbConnectionString { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (string.IsNullOrWhiteSpace(DbConnectionString))
+            if (string.IsNullOrWhiteSpace(this.DbConnectionString))
             {
                 IConfigurationRoot config = new ConfigurationBuilder()
                     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
@@ -37,7 +37,7 @@ namespace HandyHansel.Models
 
                 BotConfig configJson = new BotConfig();
                 config.GetSection(BotConfig.Section).Bind(configJson);
-                
+
                 NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
                 {
                     Host = configJson.Database.Host,
@@ -48,10 +48,10 @@ namespace HandyHansel.Models
                     Pooling = configJson.Database.Pooling,
                 };
 
-                DbConnectionString = connectionStringBuilder.ConnectionString;
+                this.DbConnectionString = connectionStringBuilder.ConnectionString;
             }
 
-            optionsBuilder.UseNpgsql(DbConnectionString);
+            optionsBuilder.UseNpgsql(this.DbConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -61,7 +61,7 @@ namespace HandyHansel.Models
 
         public override int SaveChanges()
         {
-            ChangeTracker.DetectChanges();
+            this.ChangeTracker.DetectChanges();
             return base.SaveChanges();
         }
     }

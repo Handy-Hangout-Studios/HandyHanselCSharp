@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Recognizers.Text;
 using Microsoft.Recognizers.Text.DataTypes.TimexExpression;
 using Microsoft.Recognizers.Text.DateTime;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HandyHansel
 {
@@ -40,12 +40,15 @@ namespace HandyHansel
         public Parser(ILogger logger, params ParserType[] parserTypes)
         {
 
-            _funcsToUse =
+            this._funcsToUse =
                 new Dictionary<ParserType, Func<IEnumerable<KeyValuePair<string, object>>, IEnumerable<DateTime>>>();
 
-            foreach (ParserType type in parserTypes) _funcsToUse.Add(type, _allParserFuncs[type]);
+            foreach (ParserType type in parserTypes)
+            {
+                this._funcsToUse.Add(type, this._allParserFuncs[type]);
+            }
 
-            _logger = logger;
+            this._logger = logger;
         }
 
         private static ParserType ToParserType(string content)
@@ -67,7 +70,7 @@ namespace HandyHansel
             List<DateTime> temp = new List<DateTime>();
             foreach (KeyValuePair<string, object> pair in resolution)
             {
-                List<Dictionary<string, string>> nextResult = (List<Dictionary<string, string>>) pair.Value;
+                List<Dictionary<string, string>> nextResult = (List<Dictionary<string, string>>)pair.Value;
                 temp.AddRange(
                     nextResult
                         .Select(
@@ -103,7 +106,7 @@ namespace HandyHansel
             List<DateTime> temp = new List<DateTime>();
             foreach (KeyValuePair<string, object> pair in resolution)
             {
-                List<Dictionary<string, string>> nextResult = (List<Dictionary<string, string>>) pair.Value;
+                List<Dictionary<string, string>> nextResult = (List<Dictionary<string, string>>)pair.Value;
                 temp.AddRange(
                     nextResult
                         .Select(
@@ -132,20 +135,20 @@ namespace HandyHansel
                 try
                 {
                     ParserType parserType = ToParserType(modelResult.TypeName);
-                    if (_funcsToUse.ContainsKey(parserType))
+                    if (this._funcsToUse.ContainsKey(parserType))
                     {
                         Func<IEnumerable<KeyValuePair<string, object>>, IEnumerable<DateTime>> parserFunc =
-                            _funcsToUse[parserType];
+                            this._funcsToUse[parserType];
                         result.AddRange(parserFunc(modelResult.Resolution)
                             .Select(time => new Tuple<string, DateTime>(modelResult.Text, time)));
                     }
                 }
                 catch (ArgumentException exception)
                 {
-                    _logger.Log(LogLevel.Debug, exception, "Devs need to implement these parsers. Things are hitting them.");
+                    this._logger.Log(LogLevel.Debug, exception, "Devs need to implement these parsers. Things are hitting them.");
                 }
             }
-            
+
             return result;
         }
 

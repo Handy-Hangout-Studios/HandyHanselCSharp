@@ -1,14 +1,12 @@
 ﻿using HandyHansel.Models;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HandyHansel.BotDatabase
 {
     [Table("all_user_cards")]
-    class UserCard
+    internal class UserCard
     {
         [Key, Column("id")] public int Id { get; set; }
 

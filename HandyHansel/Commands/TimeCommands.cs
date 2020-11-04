@@ -1,12 +1,12 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using DSharpPlus.CommandsNext;
+﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
+using System;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
@@ -20,14 +20,14 @@ namespace HandyHansel.Commands
 
         public TimeCommands(IBotAccessProviderBuilder providerBuilder, BotService bot)
         {
-            _bot = bot;
-            _access = providerBuilder;
+            this._bot = bot;
+            this._access = providerBuilder;
         }
 
         [GroupCommand]
         public async Task ExecuteGroupAsync(CommandContext context)
         {
-            using IBotAccessProvider dataAccessProvider = _access.Build();
+            using IBotAccessProvider dataAccessProvider = this._access.Build();
             if (dataAccessProvider.GetUsersTimeZone(context.User.Id) != null)
             {
                 await context.RespondAsync(
@@ -42,7 +42,7 @@ namespace HandyHansel.Commands
                 await interactivity.WaitForMessageAsync(msg => msg.Author.Equals(context.Message.Author),
                     TimeSpan.FromMinutes(1));
 
-            if (!result.TimedOut && _bot.SystemTimeZones.ContainsKey(result.Result.Content))
+            if (!result.TimedOut && this._bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
                 UserTimeZone newUserTimeZone = new UserTimeZone
                 {
@@ -71,9 +71,9 @@ namespace HandyHansel.Commands
             InteractivityResult<DiscordMessage> result =
                 await interactivity.WaitForMessageAsync(msg => msg.Author.Equals(context.Message.Author));
 
-            if (!result.TimedOut && _bot.SystemTimeZones.ContainsKey(result.Result.Content))
+            if (!result.TimedOut && this._bot.SystemTimeZones.ContainsKey(result.Result.Content))
             {
-                using IBotAccessProvider dataAccessProvider = _access.Build();
+                using IBotAccessProvider dataAccessProvider = this._access.Build();
                 UserTimeZone updatedUserTimeZone = dataAccessProvider.GetUsersTimeZone(context.Message.Author.Id);
                 updatedUserTimeZone.TimeZoneId = result.Result.Content;
                 dataAccessProvider.UpdateUserTimeZone(updatedUserTimeZone);

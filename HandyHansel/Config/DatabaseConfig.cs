@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace HandyHansel
+﻿namespace HandyHansel
 {
     public class DatabaseConfig
     {
