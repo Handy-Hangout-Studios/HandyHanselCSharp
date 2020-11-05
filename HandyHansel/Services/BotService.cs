@@ -11,6 +11,7 @@ using DSharpPlus.VoiceNext;
 using HandyHansel.BotDatabase;
 using HandyHansel.Commands;
 using HandyHansel.Models;
+using Hangfire;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -89,6 +90,7 @@ namespace HandyHansel
                 pair.Value.RegisterCommands<KarmaCommands>();
                 pair.Value.CommandErrored += this.ChecksFailedError;
                 pair.Value.CommandErrored += this.LogExceptions;
+                pair.Value.SetHelpFormatter<CategoryHelpFormatter>();
             }
 
             this._discord.MessageCreated += this.EarnKarma;

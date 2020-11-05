@@ -1,6 +1,7 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using HandyHansel.Attributes;
 using HandyHansel.BotDatabase;
 using HandyHansel.Models;
 using System;
@@ -8,9 +9,6 @@ using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
-    [Group("karma")]
-    [Aliases("k")]
-    [Description("The karma functionality submodule\n\nIf this command is run by itself it shows how much Karma you have in this Guild.")]
     internal class KarmaCommands : BaseCommandModule
     {
         private readonly Random _rng = new Random();
@@ -22,24 +20,41 @@ namespace HandyHansel.Commands
             this.providerBuilder = builder;
         }
 
-        [GroupCommand]
-        public async Task ExecuteCommandAsync(CommandContext context)
+        [Command("karma")]
+        [Description("Tells you how much karma you have currently or how much karma another has currently.")]
+        [BotCategory("Karma")]
+        [Aliases("k")]
+        public async Task ShowKarmaAsync(CommandContext context)
         {
-            using IBotAccessProvider provider = this.providerBuilder.Build();
-            GuildKarmaRecord userKarmaRecord = provider.GetUsersGuildKarmaRecord(context.Member.Id, context.Guild.Id);
-            await context.RespondAsync($"{context.Member.Mention}, you currently have {userKarmaRecord.CurrentKarma} karma.");
+            await ShowKarmaOfOtherAsync(context, context.Member);
         }
 
-        [Command("give")]
-        [Aliases("g")]
+        [Command("karma")]
+        public async Task ShowKarmaOfOtherAsync(CommandContext context, [Description("The member whose karma you'd like to view.")] DiscordMember member)
+        {
+            using IBotAccessProvider provider = this.providerBuilder.Build();
+            GuildKarmaRecord userKarmaRecord = provider.GetUsersGuildKarmaRecord(member.Id, context.Guild.Id);
+            DiscordEmbed response = new DiscordEmbedBuilder()
+                .AddField("Karma:", $"{userKarmaRecord.CurrentKarma}", true)
+                .WithAuthor(member.DisplayName, iconUrl: member.AvatarUrl)
+                .WithColor(member.Color);
+            await context.RespondAsync(embed: response);
+        }
+
+        [Command("upvote")]
+        [Aliases("++", "u")]
+        [BotCategory("Karma")]
+        [Description("Upvote another Discord user and bestow them 3 hours worth of karma from nothingness.\n\n*This karma is not taken from you.*")]
         [Cooldown(1, 86400, CooldownBucketType.User)]
-        public async Task GiveKarma(CommandContext context, DiscordMember member)
+        public async Task GiveKarma(CommandContext context, [Description("The discord user you'd like to give karma.")] DiscordMember member)
         {
             if (member.Equals(context.Member))
             {
                 await context.RespondAsync($"{context.Member.Mention}, you can't give yourself Karma. That would be cheating. You have to earn it from others.");
                 return;
             }
+
+            await context.Message.DeleteAsync();
             using IBotAccessProvider provider = this.providerBuilder.Build();
 
             ulong karmaToAdd = 0;
@@ -50,7 +65,9 @@ namespace HandyHansel.Commands
             }
 
             provider.AddKarma(member.Id, context.Guild.Id, karmaToAdd);
-            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":arrow_up:"));
+            DiscordEmbed response = new DiscordEmbedBuilder()
+                .WithDescription($"{member.Mention}, you have been bestowed {karmaToAdd} karma.");
+            await context.RespondAsync(embed: response);
         }
     }
 }
