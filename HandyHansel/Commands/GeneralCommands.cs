@@ -3,6 +3,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
+using HandyHansel.Attributes;
 using System;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace HandyHansel.Commands
     {
         [Command("hi")]
         [Description("A basic \"Hello, World!\" command for D#+")]
+        [BotCategory("General")]
         public async Task Hi(CommandContext context)
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");
@@ -29,6 +31,7 @@ namespace HandyHansel.Commands
         [Description("Purposefully throw an error for testing purposes")]
         [RequireOwner]
         [Hidden]
+        [BotCategory("General")]
         public async Task Break(CommandContext context)
         {
             await context.RespondAsync("Throwing an exception now");
