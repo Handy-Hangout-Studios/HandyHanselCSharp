@@ -59,7 +59,7 @@ namespace HandyHansel.Commands
         }
 
         [Command("update")]
-        [Description("Perform a time zone update process for the user who called update.")]
+        [Description("Perform the time zone update process for the user who called update.")]
         public async Task UpdateTimeZone(CommandContext context)
         {
             await context.RespondAsync(
