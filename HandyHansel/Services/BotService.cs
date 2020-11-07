@@ -89,7 +89,9 @@ namespace HandyHansel
                 pair.Value.RegisterCommands<PrefixCommands>();
                 pair.Value.RegisterCommands<KarmaCommands>();
                 pair.Value.CommandErrored += this.ChecksFailedError;
+                pair.Value.CommandErrored += this.CheckCommandExistsError;
                 pair.Value.CommandErrored += this.LogExceptions;
+                pair.Value.SetHelpFormatter<CategoryHelpFormatter>();
             }
 
             this._discord.MessageCreated += this.EarnKarma;
@@ -105,14 +107,14 @@ namespace HandyHansel
                 bot.UpdateKarmas(), "0/1 * * * *");
         }
 
-        private async Task UpdateDiscordStatus(DiscordClient sender, ReadyEventArgs e)
-        {
-            await this._discord.UpdateStatusAsync(new DiscordActivity("all the users in anticipation", ActivityType.Watching));
-        }
-
         public async Task StopAsync()
         {
             await this._discord.StopAsync();
+        }
+
+        private async Task UpdateDiscordStatus(DiscordClient sender, ReadyEventArgs e)
+        {
+            await this._discord.UpdateStatusAsync(new DiscordActivity("all the users in anticipation", ActivityType.Watching));
         }
 
         private async Task ChecksFailedError(CommandsNextExtension c, CommandErrorEventArgs e)
@@ -149,14 +151,48 @@ namespace HandyHansel
             }
         }
 
+        private async Task CheckCommandExistsError(CommandsNextExtension c, CommandErrorEventArgs e)
+        {
+            if (e.Exception is CommandNotFoundException)
+            {
+                await e.Context.RespondAsync("The given command doesn't exist");
+                e.Handled = true;
+            }
+            else if (e.Exception is InvalidOperationException invalid)
+            {
+                await e.Context.RespondAsync(invalid.Message);
+                e.Handled = true;
+            }
+            else if (e.Exception is ArgumentException args)
+            {
+                await e.Context.RespondAsync($"Missing arguments. Call `help {e.Command.QualifiedName}` for the proper usage.");
+                e.Handled = true;
+            }
+        }
+
         private async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
             try
             {
-                int stackTraceLength = e.Exception.StackTrace.Length > 1024 ? 1024 : e.Exception.StackTrace.Length;
-                DiscordEmbed commandErrorEmbed = new DiscordEmbedBuilder()
-                    .AddField("Message", e.Exception.Message ?? "")
-                    .AddField("StackTrace", e.Exception.StackTrace.Substring(0, stackTraceLength));
+                DiscordEmbedBuilder commandErrorEmbed = new DiscordEmbedBuilder()
+                    .WithTitle("Command Exception");
+
+                if (e.Exception.Message != null)
+                {
+                    commandErrorEmbed.AddField("Message", e.Exception.Message);
+                }
+
+                if (e.Exception.StackTrace != null)
+                {
+                    int stackTraceLength = e.Exception?.StackTrace.Length > 1024 ? 1024 : e.Exception.StackTrace.Length;
+                    commandErrorEmbed.AddField("StackTrace", e.Exception.StackTrace.Substring(0, stackTraceLength));
+                }
+
+                if (e.Exception.GetType() != null)
+                {
+                    commandErrorEmbed.AddField("ExceptionType", e.Exception.GetType().FullName);
+                }
+
                 await e.Context.Guild.Members[this._devUserId].SendMessageAsync(embed: commandErrorEmbed);
                 this._logger.LogError(e.Exception, "Exception from Command Errored");
             }
@@ -263,8 +299,7 @@ namespace HandyHansel
                         .WithAuthor(poster.Username, iconUrl: poster.AvatarUrl)
                         .WithDescription(description)
                         .Build();
-                await shardClient.SendMessageAsync(channel, message);
-                await shardClient.SendMessageAsync(channel, embed: embed);
+                await shardClient.SendMessageAsync(channel, content: message, embed: embed);
             }
             catch (Exception e)
             {
@@ -315,11 +350,13 @@ namespace HandyHansel
         public async Task UpdateKarmas()
         {
             using IBotAccessProvider provider = this._accessBuilder.Build();
+            ISet<GuildKarmaRecord> bulkUpdate;
             lock (this._karmaLock)
             {
-                provider.BulkUpdateKarma(this._userKarmaAddition);
+                bulkUpdate = new HashSet<GuildKarmaRecord>(this._userKarmaAddition);
                 this._userKarmaAddition.Clear();
             }
+            provider.BulkUpdateKarma(bulkUpdate);
         }
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     }

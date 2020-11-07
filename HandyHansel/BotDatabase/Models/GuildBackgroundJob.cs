@@ -23,9 +23,16 @@ namespace HandyHansel.Models
         [Column("job_type")]
         public GuildJobType GuildJobType { get; set; }
 
-        public void ConvertTimeZoneTo(TimeZoneInfo timezone)
+        public GuildBackgroundJob WithTimeZoneConvertedTo(TimeZoneInfo timezone)
         {
-            this.ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(this.ScheduledTime, timezone);
+            return new GuildBackgroundJob
+            {
+                HangfireJobId = this.HangfireJobId,
+                GuildId = this.GuildId,
+                JobName = this.JobName,
+                ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(this.ScheduledTime, timezone),
+                GuildJobType = this.GuildJobType,
+            };
         }
     }
 

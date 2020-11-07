@@ -27,7 +27,7 @@ namespace HandyHansel
                                .Enrich.FromLogContext()
                                .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
                                .WriteTo.Console()
-                               .MinimumLevel.Information()
+                               .MinimumLevel.Debug()
                            )
                            .ConfigureHostConfiguration(ConfigureHostConfiguration(args))
                            .ConfigureServices(ConfigureServices);
@@ -58,14 +58,14 @@ namespace HandyHansel
                 Pooling = hangfireConfig.Database.Pooling,
             };
 
-            services
+            _ = services
                 .AddSingleton<IBotAccessProviderBuilder, BotAccessProviderBuilder>()
                 .AddSingleton<BotService>()
                 .AddHangfire(configuration => configuration
                     .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
-                    .UsePostgreSqlStorage(connectionStringBuilder.ConnectionString))
+                    .UsePostgreSqlStorage(connectionStringBuilder.ConnectionString, new PostgreSqlStorageOptions { DistributedLockTimeout = TimeSpan.FromMinutes(1), }))
                 .AddHangfireServer(opts =>
                 {
                     opts.StopTimeout = TimeSpan.FromSeconds(15);

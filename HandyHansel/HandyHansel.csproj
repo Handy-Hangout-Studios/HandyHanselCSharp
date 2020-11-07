@@ -44,4 +44,8 @@
     <Compile Remove="Commands\MinecraftCommands.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="ActionGifs.txt" />
+  </ItemGroup>
+
 </Project>
