@@ -15,7 +15,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
@@ -65,7 +64,7 @@ namespace HandyHansel.Commands
                 return;
             }
 
-            await context.Channel.DeleteMessagesAsync(new List<DiscordMessage> { context.Message, msg } );
+            await context.Channel.DeleteMessagesAsync(new List<DiscordMessage> { context.Message, msg });
             using IBotAccessProvider provider = this.accessBuilder.Build();
             List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
             GuildEvent selectedEvent = guildEvents[Random.Next(guildEvents.Count)];
@@ -73,8 +72,7 @@ namespace HandyHansel.Commands
             eventEmbedBuilder
                 .WithTitle(selectedEvent.EventName)
                 .WithDescription(selectedEvent.EventDesc);
-            await context.RespondAsync("@everyone");
-            await context.RespondAsync(embed: eventEmbedBuilder.Build());
+            await context.RespondAsync("@everyone", embed: eventEmbedBuilder.Build());
         }
 
         [Command("schedule")]
@@ -165,7 +163,7 @@ namespace HandyHansel.Commands
                 }
 
                 List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
-                IEnumerable<Page> pages = GetGuildEventsPages(guildEvents,interactivity, scheduleEmbedBase);
+                IEnumerable<Page> pages = this.GetGuildEventsPages(guildEvents, interactivity, scheduleEmbedBase);
                 CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
                     context,
                     pages,
@@ -185,7 +183,7 @@ namespace HandyHansel.Commands
             }
             else
             {
-                await AddGuildEventInteractive(context, interactivity, msg);
+                await this.AddGuildEventInteractive(context, interactivity, msg);
                 selectedEvent = provider.GetAllAssociatedGuildEvents(context.Guild.Id).OrderByDescending(e => e.Id).First();
             }
 
@@ -255,12 +253,13 @@ namespace HandyHansel.Commands
             }
 
             await context.Message.DeleteAsync();
+            await msg.DeleteAllReactionsAsync();
 
             TimeZoneInfo memberTimeZone = this._bot.SystemTimeZones[provider.GetUsersTimeZone(context.User.Id).TimeZoneId];
 
             List<GuildBackgroundJob> guildEventJobs = provider.GetAllAssociatedGuildBackgroundJobs(context.Guild.Id)
                 .Where(x => x.GuildJobType == GuildJobType.SCHEDULED_EVENT)
-                .Select(x => x.WithTimeZoneConvertedTo(memberTimeZone))
+                .OrderBy(x => x.ScheduledTime)
                 .ToList();
 
             DiscordEmbedBuilder removeEventEmbed = new DiscordEmbedBuilder()
@@ -281,7 +280,7 @@ namespace HandyHansel.Commands
 
             CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
                 context,
-                this.GetScheduledEventsPages(guildEventJobs, interactivity, removeEventEmbed),
+                this.GetScheduledEventsPages(guildEventJobs.Select(x => x.WithTimeZoneConvertedTo(memberTimeZone)), interactivity, removeEventEmbed),
                 messageValidationAndReturn,
                 msg: msg);
 
@@ -295,7 +294,7 @@ namespace HandyHansel.Commands
 
             GuildBackgroundJob job = guildEventJobs[result.Result - 1];
 
-            msg = await msg.ModifyAsync($"{context.User.Mention}, are you sure you want to unschedule this event?");
+            msg = await msg.ModifyAsync($"{context.User.Mention}, are you sure you want to unschedule this event?", embed: null);
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_n:"));
 
@@ -304,7 +303,7 @@ namespace HandyHansel.Commands
             if (interactivityResult.TimedOut ||
                 !interactivityResult.Result.Emoji.Equals(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:")))
             {
-                DiscordMessage snark = await context.RespondAsync("Well then why did you get my attention! Thanks for wasting my time."); 
+                DiscordMessage snark = await context.RespondAsync("Well then why did you get my attention! Thanks for wasting my time.");
                 await Task.Delay(5000);
                 await context.Channel.DeleteMessagesAsync(new List<DiscordMessage> { msg, snark });
                 return;
@@ -313,7 +312,7 @@ namespace HandyHansel.Commands
             BackgroundJob.Delete(job.HangfireJobId);
             provider.DeleteGuildBackgroundJob(job);
             await msg.DeleteAllReactionsAsync();
-            await msg.ModifyAsync("Ok, I've unscheduled that event!");
+            await msg.ModifyAsync("Ok, I've unscheduled that event!", embed: null);
         }
 
         [Command("add")]
@@ -339,7 +338,7 @@ namespace HandyHansel.Commands
 
             await context.Message.DeleteAsync();
             await msg.DeleteAllReactionsAsync();
-            await AddGuildEventInteractive(context, interactivity, msg);
+            await this.AddGuildEventInteractive(context, interactivity, msg);
         }
 
         private async Task AddGuildEventInteractive(CommandContext context, InteractivityExtension interactivity, DiscordMessage msg)
@@ -455,7 +454,7 @@ namespace HandyHansel.Commands
             GuildEvent selectedEvent = guildEvents[result.Result - 1];
 
             provider.DeleteGuildEvent(selectedEvent);
-            await msg.ModifyAsync($"You have deleted the \"{selectedEvent.EventName}\" event from the guild");
+            await msg.ModifyAsync($"You have deleted the \"{selectedEvent.EventName}\" event from the guild", embed: null);
         }
 
         [Command("show")]
@@ -464,10 +463,11 @@ namespace HandyHansel.Commands
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
                 this.GetGuildEventsPages(this.accessBuilder.Build().GetAllAssociatedGuildEvents(context.Guild.Id), context.Client.GetInteractivity()),
-                behaviour: PaginationBehaviour.WrapAround, timeoutoverride: TimeSpan.FromMinutes(1));
+                behaviour: PaginationBehaviour.WrapAround, deletion: PaginationDeletion.DeleteMessage, timeoutoverride: TimeSpan.FromMinutes(1));
+            await context.Message.DeleteAsync();
         }
 
-        private IEnumerable<Page> GetGuildEventsPages(IEnumerable<GuildEvent> guildEvents, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase=null)
+        private IEnumerable<Page> GetGuildEventsPages(IEnumerable<GuildEvent> guildEvents, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
         {
             StringBuilder guildEventsStringBuilder = new StringBuilder();
 

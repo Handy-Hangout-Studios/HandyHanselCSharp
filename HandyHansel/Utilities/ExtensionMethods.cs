@@ -4,11 +4,9 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
-using Emzi0767.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +20,7 @@ namespace HandyHansel.Utilities
                this InteractivityExtension interactivity,
                CommandContext context,
                IEnumerable<Page> pages,
-               Func<MessageCreateEventArgs, Task<(bool, T)> > messageValidationAndReturn,
+               Func<MessageCreateEventArgs, Task<(bool, T)>> messageValidationAndReturn,
                PaginationEmojis paginationEmojis = null,
                PaginationBehaviour behaviour = PaginationBehaviour.WrapAround,
                PaginationDeletion deletion = PaginationDeletion.DeleteEmojis,
@@ -58,19 +56,25 @@ namespace HandyHansel.Utilities
             async Task messageCreated(DiscordClient c, MessageCreateEventArgs a)
             {
                 if (a.Channel.Id == context.Channel.Id && a.Author.Id == context.Member.Id)
+                {
                     discordEventSubscriber?.TrySetResult(a);
+                }
             }
 
             async Task reactionAdded(DiscordClient c, MessageReactionAddEventArgs a)
             {
                 if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                {
                     discordEventSubscriber?.TrySetResult(a);
+                }
             }
 
             async Task reactionRemoved(DiscordClient c, MessageReactionRemoveEventArgs a)
             {
                 if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                {
                     discordEventSubscriber?.TrySetResult(a);
+                }
             }
 
             while (true)
@@ -121,7 +125,7 @@ namespace HandyHansel.Utilities
                         {
                             DiscordMessage invalid = await messageEvent.Channel.SendMessageAsync("Invalid Input");
                             Thread.Sleep(5000);
-                            await messageEvent.Channel.DeleteMessagesAsync(new List<DiscordMessage> { messageEvent.Message, invalid});
+                            await messageEvent.Channel.DeleteMessagesAsync(new List<DiscordMessage> { messageEvent.Message, invalid });
                         });
                     }
                 }
@@ -166,7 +170,7 @@ namespace HandyHansel.Utilities
 
                     if (reactEmoji.Equals(paginationEmojis.Stop))
                     {
-                        switch(deletion)
+                        switch (deletion)
                         {
                             case PaginationDeletion.DeleteEmojis:
                                 await msg.DeleteAllReactionsAsync();

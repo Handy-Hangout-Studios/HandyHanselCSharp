@@ -4,22 +4,20 @@ using DSharpPlus.CommandsNext.Converters;
 using DSharpPlus.CommandsNext.Entities;
 using DSharpPlus.Entities;
 using HandyHansel.Attributes;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace HandyHansel
 {
-    class CategoryHelpFormatter : BaseHelpFormatter
+    internal class CategoryHelpFormatter : BaseHelpFormatter
     {
         private readonly DiscordEmbedBuilder _embed;
         private Command _command;
 
         public CategoryHelpFormatter(CommandContext ctx) : base(ctx)
         {
-            _embed = new DiscordEmbedBuilder()
+            this._embed = new DiscordEmbedBuilder()
                 .WithTitle("Help")
                 .WithColor(this.Context.Member.Color);
         }
@@ -31,7 +29,7 @@ namespace HandyHansel
                 this._embed.WithDescription("Listing all top-level commands, modules, and groups. Specify a command to see more information.");
             }
 
-            return new CommandHelpMessage(embed: _embed);
+            return new CommandHelpMessage(embed: this._embed);
         }
 
         public override BaseHelpFormatter WithCommand(Command command)
@@ -89,7 +87,7 @@ namespace HandyHansel
 
         public override BaseHelpFormatter WithSubcommands(IEnumerable<Command> subcommands)
         {
-            Dictionary<string , ISet<string>> modules = new Dictionary<string, ISet<string>>();
+            Dictionary<string, ISet<string>> modules = new Dictionary<string, ISet<string>>();
             List<CommandGroup> groupCommands = new List<CommandGroup>();
             List<Command> currentLevelCommands = new List<Command>();
 

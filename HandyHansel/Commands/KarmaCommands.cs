@@ -26,7 +26,7 @@ namespace HandyHansel.Commands
         [Aliases("k")]
         public async Task ShowKarmaAsync(CommandContext context)
         {
-            await ShowKarmaOfOtherAsync(context, context.Member);
+            await this.ShowKarmaOfOtherAsync(context, context.Member);
         }
 
         [Command("karma")]

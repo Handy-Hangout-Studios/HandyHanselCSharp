@@ -89,6 +89,7 @@ namespace HandyHansel
                 pair.Value.RegisterCommands<PrefixCommands>();
                 pair.Value.RegisterCommands<KarmaCommands>();
                 pair.Value.CommandErrored += this.ChecksFailedError;
+                pair.Value.CommandErrored += this.CheckCommandExistsError;
                 pair.Value.CommandErrored += this.LogExceptions;
                 pair.Value.SetHelpFormatter<CategoryHelpFormatter>();
             }
@@ -150,6 +151,25 @@ namespace HandyHansel
             }
         }
 
+        private async Task CheckCommandExistsError(CommandsNextExtension c, CommandErrorEventArgs e)
+        {
+            if (e.Exception is CommandNotFoundException)
+            {
+                await e.Context.RespondAsync("The given command doesn't exist");
+                e.Handled = true;
+            }
+            else if (e.Exception is InvalidOperationException invalid)
+            {
+                await e.Context.RespondAsync(invalid.Message);
+                e.Handled = true;
+            }
+            else if (e.Exception is ArgumentException args)
+            {
+                await e.Context.RespondAsync($"Missing arguments. Call `help {e.Command.QualifiedName}` for the proper usage.");
+                e.Handled = true;
+            }
+        }
+
         private async Task LogExceptions(CommandsNextExtension c, CommandErrorEventArgs e)
         {
             try
@@ -167,7 +187,12 @@ namespace HandyHansel
                     int stackTraceLength = e.Exception?.StackTrace.Length > 1024 ? 1024 : e.Exception.StackTrace.Length;
                     commandErrorEmbed.AddField("StackTrace", e.Exception.StackTrace.Substring(0, stackTraceLength));
                 }
-                    
+
+                if (e.Exception.GetType() != null)
+                {
+                    commandErrorEmbed.AddField("ExceptionType", e.Exception.GetType().FullName);
+                }
+
                 await e.Context.Guild.Members[this._devUserId].SendMessageAsync(embed: commandErrorEmbed);
                 this._logger.LogError(e.Exception, "Exception from Command Errored");
             }

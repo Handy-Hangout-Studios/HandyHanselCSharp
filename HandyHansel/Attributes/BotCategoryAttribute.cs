@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HandyHansel.Attributes
 {
@@ -10,7 +8,7 @@ namespace HandyHansel.Attributes
 
         public BotCategoryAttribute(string name)
         {
-            Name = name;
+            this.Name = name;
         }
     }
 }

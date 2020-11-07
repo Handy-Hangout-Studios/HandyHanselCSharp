@@ -7,7 +7,6 @@ using DSharpPlus.Interactivity.Enums;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHansel.Models;
 using HandyHansel.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -58,13 +57,19 @@ namespace HandyHansel.Commands
         [Command("add"), Description("Add prefix to guild's prefixes")]
         [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task AddPrefix(
-            CommandContext context, 
+            CommandContext context,
             [Description("The new prefix that you want to add to the guild's prefixes. Must be at least one character")]
             string newPrefix)
         {
             if (newPrefix.Length < 1)
             {
                 await context.RespondAsync("I'm sorry, but any new prefix must be at least one character.");
+                return;
+            }
+
+            if (newPrefix.Length > 20)
+            {
+                await context.RespondAsync("I'm sorry, but any new prefix must be less than 20 characters.");
                 return;
             }
 
@@ -78,7 +83,7 @@ namespace HandyHansel.Commands
         [Description("Remove a prefix from the guild's prefixes")]
         [RequireUserPermissions(DSharpPlus.Permissions.ManageGuild)]
         public async Task RemovePrefix(
-            CommandContext context, 
+            CommandContext context,
             [Description("The specific string prefix to remove from the guild's prefixes.")]
             string prefixToRemove)
         {
@@ -145,7 +150,7 @@ namespace HandyHansel.Commands
                     return Task.FromResult((false, -1));
                 }
             }
-
+            await msg.DeleteAllReactionsAsync();
             CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
                 context,
                 this.GetGuildPrefixPages(guildPrefixes, interactivity, removeEventEmbed),
@@ -164,8 +169,8 @@ namespace HandyHansel.Commands
 
             provider.DeleteGuildPrefix(selectedPrefix);
 
-            await context.RespondAsync(
-                $"You have deleted the prefix \"{selectedPrefix.Prefix}\" from this guild's prefixes.");
+            await msg.ModifyAsync(
+                $"You have deleted the prefix \"{selectedPrefix.Prefix}\" from this guild's prefixes.", embed: null);
         }
 
         private IEnumerable<Page> GetGuildPrefixPages(List<GuildPrefix> guildPrefixes, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)

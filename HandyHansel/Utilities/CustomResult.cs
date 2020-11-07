@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace HandyHansel.Utilities
+﻿namespace HandyHansel.Utilities
 {
     public class CustomResult<T>
     {
@@ -11,9 +7,9 @@ namespace HandyHansel.Utilities
         public T Result { get; private set; }
         public CustomResult(T result = default, bool timedOut = false, bool cancelled = false)
         {
-            Result = result;
-            TimedOut = timedOut;
-            Cancelled = cancelled;
+            this.Result = result;
+            this.TimedOut = timedOut;
+            this.Cancelled = cancelled;
         }
     }
 }
