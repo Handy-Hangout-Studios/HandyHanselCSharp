@@ -151,9 +151,8 @@ namespace HandyHansel.Commands
                 }
             }
             await msg.DeleteAllReactionsAsync();
-            CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
-                context,
-                this.GetGuildPrefixPages(guildPrefixes, interactivity, removeEventEmbed),
+            CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(
+                GetGuildPrefixPages(guildPrefixes, interactivity, removeEventEmbed),
                 messageValidationAndReturn,
                 msg: msg);
 
@@ -173,7 +172,7 @@ namespace HandyHansel.Commands
                 $"You have deleted the prefix \"{selectedPrefix.Prefix}\" from this guild's prefixes.", embed: null);
         }
 
-        private IEnumerable<Page> GetGuildPrefixPages(List<GuildPrefix> guildPrefixes, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
+        private static IEnumerable<Page> GetGuildPrefixPages(List<GuildPrefix> guildPrefixes, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
         {
             StringBuilder guildPrefixesStringBuilder = new StringBuilder();
             int count = 1;

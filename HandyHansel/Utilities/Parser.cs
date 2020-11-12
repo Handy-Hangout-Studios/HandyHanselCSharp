@@ -51,9 +51,9 @@ namespace HandyHansel
             this._logger = logger;
         }
 
-        private static ParserType ToParserType(string content)
+        private static ParserType ToParserType(string parserType)
         {
-            return content switch
+            return parserType switch
             {
                 "datetimeV2.date" => ParserType.Date,
                 "datetimeV2.time" => ParserType.Time,
@@ -61,7 +61,7 @@ namespace HandyHansel
                 "datetimeV2.timerange" => ParserType.TimeRange,
                 "datetimeV2.datetimerange" => ParserType.DateTimeRange,
                 "datetimeV2.datetime" => ParserType.DateTime,
-                _ => throw new ArgumentException(),
+                _ => throw new ArgumentException("An unknown parserType was found by the DateTimeParser", nameof(parserType)),
             };
         }
 
@@ -152,13 +152,13 @@ namespace HandyHansel
             return result;
         }
 
-        public DateTime DateTimeV2TimeParse(string content)
+        public static DateTime DateTimeV2TimeParse(string content)
         {
             return TimeParser(DateTimeRecognizer.RecognizeDateTime(content, Culture.English).First().Resolution)
                 .First();
         }
 
-        public DateTime DateTimeV2DateTimeParse(string content, TimeZoneInfo userTimeZone)
+        public static DateTime DateTimeV2DateTimeParse(string content, TimeZoneInfo userTimeZone)
         {
             DateTime currentTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, userTimeZone);
             return DateTimeParser(DateTimeRecognizer.RecognizeDateTime(content, Culture.English).First().Resolution)

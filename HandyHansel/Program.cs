@@ -25,7 +25,8 @@ namespace HandyHansel
             return Host.CreateDefaultBuilder(args)
                            .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
                                .Enrich.FromLogContext()
-                               .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
+                               .WriteTo.File(formatter: new JsonFormatter(renderMessage: true),
+                                             "log.txt")
                                .WriteTo.Console()
                                .MinimumLevel.Debug()
                            )

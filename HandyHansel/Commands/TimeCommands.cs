@@ -11,7 +11,7 @@ namespace HandyHansel.Commands
 {
     [Group("time")]
     [Description(
-        "All commands associated with current time functionality.\n\nWhen used alone, perform initial set-up of user's timezone.")]
+        "All commands associated with current time functionality.\n\nWhen used alone, outputs the time of the user mentioned.")]
     public class TimeCommands : BaseCommandModule
     {
         private readonly BotService _bot;
@@ -24,7 +24,26 @@ namespace HandyHansel.Commands
         }
 
         [GroupCommand]
-        public async Task ExecuteGroupAsync(CommandContext context)
+        public async Task ExecuteGroupAsync(CommandContext context, [Description("User to request current time for")] DiscordMember member)
+        {
+            using IBotAccessProvider provider = this._access.Build();
+            UserTimeZone memberTimeZone = provider.GetUsersTimeZone(member.Id);
+            if (memberTimeZone == null)
+            {
+                await context.RespondAsync("This user doesn't have a timezone set up. Please try again after the mentioned user has set up their timezone using `<prefix>time init`");
+                return;
+            }
+
+            TimeZoneInfo memberTimeZoneInfo = this._bot.SystemTimeZones[memberTimeZone.TimeZoneId];
+            DateTime outputTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.Now, memberTimeZoneInfo);
+            DiscordEmbed outputEmbed = new DiscordEmbedBuilder()
+                .WithAuthor(iconUrl: member.AvatarUrl)
+                .WithTitle($"{outputTime:t}");
+        }
+
+        [Command("init")]
+        [Description("Perform initial set-up of user's timezone.")]
+        public async Task InitializeTimeZoneAsync(CommandContext context)
         {
             using IBotAccessProvider dataAccessProvider = this._access.Build();
             if (dataAccessProvider.GetUsersTimeZone(context.User.Id) != null)

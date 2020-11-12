@@ -14,11 +14,10 @@ namespace HandyHansel.Utilities
 {
     public static class ExtensionMethods
     {
-        public static TaskCompletionSource<DiscordEventArgs> discordEventSubscriber;
+        private static TaskCompletionSource<DiscordEventArgs> DiscordEventSubscriber { get; set; }
 
-        public static async Task<CustomResult<T>> WaitForMessagePaginationOnMsg<T>(
-               this InteractivityExtension interactivity,
-               CommandContext context,
+        public static async Task<CustomResult<T>> WaitForMessageAndPaginateOnMsg<T>(
+               this CommandContext context,
                IEnumerable<Page> pages,
                Func<MessageCreateEventArgs, Task<(bool, T)>> messageValidationAndReturn,
                PaginationEmojis paginationEmojis = null,
@@ -27,14 +26,12 @@ namespace HandyHansel.Utilities
                DiscordMessage msg = null)
         {
             List<Page> pagesList = pages.ToList();
-            paginationEmojis ??= new PaginationEmojis
-            {
-                SkipLeft = DiscordEmoji.FromName(context.Client, ":track_previous:"),
-                Left = DiscordEmoji.FromName(context.Client, ":arrow_backward:"),
-                Right = DiscordEmoji.FromName(context.Client, ":arrow_forward:"),
-                SkipRight = DiscordEmoji.FromName(context.Client, ":track_next:"),
-                Stop = DiscordEmoji.FromName(context.Client, ":stop_button:")
-            };
+            paginationEmojis ??= new PaginationEmojis();
+            paginationEmojis.SkipLeft ??= DiscordEmoji.FromName(context.Client, ":track_previous:");
+            paginationEmojis.Left ??= DiscordEmoji.FromName(context.Client, ":arrow_backward:");
+            paginationEmojis.Right ??= DiscordEmoji.FromName(context.Client, ":arrow_forward:");
+            paginationEmojis.SkipRight ??= DiscordEmoji.FromName(context.Client, ":track_next:");
+            paginationEmojis.Stop ??= DiscordEmoji.FromName(context.Client, ":stop_button:");
 
             int currentPage = 0;
             if (msg == null)
@@ -55,48 +52,57 @@ namespace HandyHansel.Utilities
 
             async Task messageCreated(DiscordClient c, MessageCreateEventArgs a)
             {
-                if (a.Channel.Id == context.Channel.Id && a.Author.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Channel.Id == context.Channel.Id && a.Author.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             async Task reactionAdded(DiscordClient c, MessageReactionAddEventArgs a)
             {
-                if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             async Task reactionRemoved(DiscordClient c, MessageReactionRemoveEventArgs a)
             {
-                if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             while (true)
             {
-                discordEventSubscriber = new TaskCompletionSource<DiscordEventArgs>();
-                interactivity.Client.MessageCreated += messageCreated;
-                interactivity.Client.MessageReactionAdded += reactionAdded;
-                interactivity.Client.MessageReactionRemoved += reactionRemoved;
+                DiscordEventSubscriber = new TaskCompletionSource<DiscordEventArgs>();
+                context.Client.MessageCreated += messageCreated;
+                context.Client.MessageReactionAdded += reactionAdded;
+                context.Client.MessageReactionRemoved += reactionRemoved;
 
-                await Task.WhenAny(discordEventSubscriber.Task, Task.Delay(60000));
+                await Task.WhenAny(DiscordEventSubscriber.Task, Task.Delay(60000));
 
-                interactivity.Client.MessageCreated -= messageCreated;
-                interactivity.Client.MessageReactionAdded -= reactionAdded;
-                interactivity.Client.MessageReactionRemoved -= reactionRemoved;
+                context.Client.MessageCreated -= messageCreated;
+                context.Client.MessageReactionAdded -= reactionAdded;
+                context.Client.MessageReactionRemoved -= reactionRemoved;
 
-                if (!discordEventSubscriber.Task.IsCompleted)
+                if (!DiscordEventSubscriber.Task.IsCompleted)
                 {
                     return new CustomResult<T>(timedOut: true);
                 }
 
-                DiscordEventArgs discordEvent = discordEventSubscriber.Task.Result;
-                discordEventSubscriber = null;
+                DiscordEventArgs discordEvent = DiscordEventSubscriber.Task.Result;
+                DiscordEventSubscriber = null;
 
                 if (discordEvent is MessageCreateEventArgs messageEvent)
                 {

@@ -14,7 +14,9 @@ namespace HandyHansel.Commands
         [Command("hi")]
         [Description("A basic \"Hello, World!\" command for D#+")]
         [BotCategory("General")]
+#pragma warning disable CA1822 // Mark members as static
         public async Task Hi(CommandContext context)
+#pragma warning restore CA1822 // Mark members as static
         {
             await context.RespondAsync($":wave: Hi, {context.User.Mention}!");
             InteractivityExtension interactivity = context.Client.GetInteractivity();
@@ -32,7 +34,9 @@ namespace HandyHansel.Commands
         [RequireOwner]
         [Hidden]
         [BotCategory("General")]
+#pragma warning disable CA1822 // Mark members as static
         public async Task Break(CommandContext context)
+#pragma warning restore CA1822 // Mark members as static
         {
             await context.RespondAsync("Throwing an exception now");
             throw new Exception();

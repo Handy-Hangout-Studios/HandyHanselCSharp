@@ -30,6 +30,7 @@ namespace HandyHansel.Models
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
             this._mContext?.Dispose();
         }
 

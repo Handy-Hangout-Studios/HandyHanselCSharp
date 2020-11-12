@@ -163,7 +163,7 @@ namespace HandyHansel
                 await e.Context.RespondAsync(invalid.Message);
                 e.Handled = true;
             }
-            else if (e.Exception is ArgumentException args)
+            else if (e.Exception is ArgumentException)
             {
                 await e.Context.RespondAsync($"Missing arguments. Call `help {e.Command.QualifiedName}` for the proper usage.");
                 e.Handled = true;
@@ -211,7 +211,7 @@ namespace HandyHansel
 
             IEnumerable<Tuple<string, DateTime>> parserList = this._timeParser.DateTimeV2Parse(e.Message.Content);
 
-            if (parserList.Count() != 0)
+            if (parserList.Any())
             {
                 await e.Message.CreateReactionAsync(this._clock);
             }

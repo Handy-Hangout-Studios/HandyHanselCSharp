@@ -5,6 +5,7 @@ using HandyHansel.Attributes;
 using HandyHansel.BotDatabase;
 using HandyHansel.Models;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
@@ -45,7 +46,7 @@ namespace HandyHansel.Commands
         [Aliases("++", "u")]
         [BotCategory("Karma")]
         [Description("Upvote another Discord user and bestow them 3 hours worth of karma from nothingness.\n\n*This karma is not taken from you.*")]
-        [Cooldown(1, 86400, CooldownBucketType.User)]
+        [Cooldown(1, 86400, CooldownBucketType.User | CooldownBucketType.Guild)]
         public async Task GiveKarma(CommandContext context, [Description("The discord user you'd like to give karma.")] DiscordMember member)
         {
             if (member.Equals(context.Member))

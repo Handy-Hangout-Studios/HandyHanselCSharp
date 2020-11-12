@@ -28,14 +28,11 @@ namespace HandyHansel.Commands
 
         private readonly IBotAccessProviderBuilder accessBuilder;
 
-        private readonly Parser parser;
-
         private readonly BotService _bot;
 
-        public EventCommands(IBotAccessProviderBuilder builder, BotService bot, ILoggerFactory loggerFactory)
+        public EventCommands(IBotAccessProviderBuilder builder, BotService bot)
         {
             this.accessBuilder = builder;
-            this.parser = new Parser(loggerFactory.CreateLogger("Event Commands Date Parser"), parserTypes: Parser.ParserType.DateTime);
             this._bot = bot;
         }
 
@@ -122,7 +119,7 @@ namespace HandyHansel.Commands
 
             TimeZoneInfo schedulerTimeZoneInfo = this._bot.SystemTimeZones[userTimeZone.TimeZoneId];
 
-            DateTime datetime = this.parser.DateTimeV2DateTimeParse(datetimeString, schedulerTimeZoneInfo);
+            DateTime datetime = Parser.DateTimeV2DateTimeParse(datetimeString, schedulerTimeZoneInfo);
             DiscordMessage msg = await context.RespondAsync($":wave: Hi, {context.User.Mention}! You want to schedule an event for {datetime:g} in your timezone?");
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_y:"));
             await msg.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":regional_indicator_n:"));
@@ -136,11 +133,10 @@ namespace HandyHansel.Commands
             {
                 DiscordMessage snark = await context.RespondAsync($"{context.User.Mention}, well then why did you get my attention! Thanks for wasting my time. Let me clean up now. :triumph:");
                 await Task.Delay(5000);
-                await context.Channel.DeleteMessagesAsync(new List<DiscordMessage> { msg, snark, context.Message });
+                await context.Channel.DeleteMessagesAsync(new List<DiscordMessage> { msg, snark });
                 return;
             }
 
-            await context.Message.DeleteAsync();
             await msg.DeleteAllReactionsAsync();
 
             DiscordEmbedBuilder scheduleEmbedBase = new DiscordEmbedBuilder()
@@ -163,9 +159,8 @@ namespace HandyHansel.Commands
                 }
 
                 List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
-                IEnumerable<Page> pages = this.GetGuildEventsPages(guildEvents, interactivity, scheduleEmbedBase);
-                CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
-                    context,
+                IEnumerable<Page> pages = GetGuildEventsPages(guildEvents, interactivity, scheduleEmbedBase);
+                CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(
                     pages,
                     messageValidationAndReturn,
                     msg: msg
@@ -278,9 +273,8 @@ namespace HandyHansel.Commands
                 }
             }
 
-            CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
-                context,
-                this.GetScheduledEventsPages(guildEventJobs.Select(x => x.WithTimeZoneConvertedTo(memberTimeZone)), interactivity, removeEventEmbed),
+            CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(
+                GetScheduledEventsPages(guildEventJobs.Select(x => x.WithTimeZoneConvertedTo(memberTimeZone)), interactivity, removeEventEmbed),
                 messageValidationAndReturn,
                 msg: msg);
 
@@ -434,12 +428,12 @@ namespace HandyHansel.Commands
                 }
             }
 
-
             List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
 
-            CustomResult<int> result = await interactivity.WaitForMessagePaginationOnMsg(
-                context,
-                this.GetGuildEventsPages(guildEvents, interactivity, removeEventEmbed),
+            await msg.DeleteAllReactionsAsync();
+
+            CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(
+                GetGuildEventsPages(guildEvents, interactivity, removeEventEmbed),
                 messageValidationAndReturn,
                 msg: msg);
 
@@ -462,12 +456,12 @@ namespace HandyHansel.Commands
         public async Task ShowGuildEvents(CommandContext context)
         {
             await context.Client.GetInteractivity().SendPaginatedMessageAsync(context.Channel, context.User,
-                this.GetGuildEventsPages(this.accessBuilder.Build().GetAllAssociatedGuildEvents(context.Guild.Id), context.Client.GetInteractivity()),
+                GetGuildEventsPages(this.accessBuilder.Build().GetAllAssociatedGuildEvents(context.Guild.Id), context.Client.GetInteractivity()),
                 behaviour: PaginationBehaviour.WrapAround, deletion: PaginationDeletion.DeleteMessage, timeoutoverride: TimeSpan.FromMinutes(1));
             await context.Message.DeleteAsync();
         }
 
-        private IEnumerable<Page> GetGuildEventsPages(IEnumerable<GuildEvent> guildEvents, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
+        private static IEnumerable<Page> GetGuildEventsPages(IEnumerable<GuildEvent> guildEvents, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
         {
             StringBuilder guildEventsStringBuilder = new StringBuilder();
 
@@ -486,7 +480,7 @@ namespace HandyHansel.Commands
             return interactivity.GeneratePagesInEmbed(guildEventsStringBuilder.ToString(), SplitType.Line, embedbase: pageEmbedBase);
         }
 
-        private IEnumerable<Page> GetScheduledEventsPages(IEnumerable<GuildBackgroundJob> guildEventJobs, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
+        private static IEnumerable<Page> GetScheduledEventsPages(IEnumerable<GuildBackgroundJob> guildEventJobs, InteractivityExtension interactivity, DiscordEmbedBuilder pageEmbedBase = null)
         {
             StringBuilder guildEventsStringBuilder = new StringBuilder();
 
