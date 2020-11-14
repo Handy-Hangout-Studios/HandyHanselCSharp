@@ -14,7 +14,7 @@
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00745" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00745" />
     <PackageReference Include="DSharpPlus.Lavalink" Version="4.0.0-nightly-00745" />
-    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0-nightly-00745" />
+    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0-rc1" />
     <PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-nightly-00745" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.17" />
     <PackageReference Include="Hangfire.Core" Version="1.7.17" />
