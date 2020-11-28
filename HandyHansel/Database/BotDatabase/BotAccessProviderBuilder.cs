@@ -1,12 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NodaTime;
 using Npgsql;
 
 namespace HandyHansel.Models
 {
     public class BotAccessProviderBuilder : IBotAccessProviderBuilder
     {
-        public BotAccessProviderBuilder(IOptions<BotConfig> config, ILoggerFactory loggerFactory)
+        public BotAccessProviderBuilder(IOptions<BotConfig> config, ILoggerFactory loggerFactory, IClock clock)
         {
             NpgsqlConnectionStringBuilder connectionStringBuilder = new NpgsqlConnectionStringBuilder
             {
@@ -17,16 +18,18 @@ namespace HandyHansel.Models
                 Password = config.Value.Database.Password,
                 Pooling = config.Value.Database.Pooling,
             };
-            this._connectionString = connectionStringBuilder.ConnectionString;
-            this._loggerFactory = loggerFactory;
+            this.connectionString = connectionStringBuilder.ConnectionString;
+            this.loggerFactory = loggerFactory;
+            this.clock = clock;
         }
 
         public IBotAccessProvider Build()
         {
-            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(this._connectionString, this._loggerFactory));
+            return new BotAccessPostgreSqlProvider(new PostgreSqlContext(this.connectionString, this.loggerFactory), this.clock);
         }
 
-        private readonly string _connectionString;
-        private readonly ILoggerFactory _loggerFactory;
+        private readonly string connectionString;
+        private readonly ILoggerFactory loggerFactory;
+        private readonly IClock clock;
     }
 }

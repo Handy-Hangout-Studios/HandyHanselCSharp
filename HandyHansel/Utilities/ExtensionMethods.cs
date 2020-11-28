@@ -4,9 +4,11 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
+using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -195,6 +197,82 @@ namespace HandyHansel.Utilities
                     }
                 }
             }
+        }
+
+        //public static string WithDiscordMarkdownStripped(this string content)
+        //{
+        //    Regex discordMarkdownCharacters = new Regex("");
+
+        //    MatchEvaluator evaluator = new MatchEvaluator((match) => "\\" + match.Value);
+
+        //    return discordMarkdownCharacters.Replace(content, evaluator);
+        //}
+
+        public static string AsHumanReadableString(this Period period)
+        {
+            StringBuilder humanReadableString = new StringBuilder();
+
+            Period normalizedPeriod = period.Normalize();
+
+            if (normalizedPeriod.Years > 0)
+            {
+                humanReadableString.Append($"{normalizedPeriod.Years} years");
+            }
+
+            if (normalizedPeriod.Weeks > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Weeks} weeks");
+            }
+
+            if (normalizedPeriod.Days > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Days} days");
+            }
+
+            if (normalizedPeriod.Hours > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Hours} hours");
+            }
+
+            if (normalizedPeriod.Minutes > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Minutes} minutes");
+            }
+
+            if (normalizedPeriod.Seconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Seconds} seconds");
+            }
+
+            if (normalizedPeriod.Milliseconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Milliseconds} milliseconds");
+            }
+
+            if (normalizedPeriod.Nanoseconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Nanoseconds} nanoseconds");
+            }
+
+            return humanReadableString.ToString();
+        }
+    }
+
+    public static class PaginationMessageFunction
+    {
+        public static Func<MessageCreateEventArgs, Task<(bool, int)>> CreateWaitForMessageWithInt(DiscordUser user, DiscordChannel channel)
+        {
+            return new Func<MessageCreateEventArgs, Task<(bool, int)>>((eventArgs) =>
+            {
+                if (eventArgs.Channel.Equals(channel) && eventArgs.Author.Equals(user) && int.TryParse(eventArgs.Message.Content, out int eventToChoose))
+                {
+                    return Task.FromResult((true, eventToChoose));
+                }
+                else
+                {
+                    return Task.FromResult((false, -1));
+                }
+            });
         }
     }
 }

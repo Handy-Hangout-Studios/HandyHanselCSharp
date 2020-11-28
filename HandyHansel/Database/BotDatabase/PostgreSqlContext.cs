@@ -1,4 +1,5 @@
 ﻿using HandyHansel.BotDatabase;
+using HandyHansel.BotDatabase.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ using System;
 
 namespace HandyHansel.Models
 {
-    public class PostgreSqlContext : DbContext
+    public sealed class PostgreSqlContext : DbContext
     {
         public PostgreSqlContext() : base()
         {
@@ -25,12 +26,20 @@ namespace HandyHansel.Models
         {
         }
 
-        public DbSet<UserTimeZone> UserTimeZones { get; private set; }
+        #region Guild Specific Databases
         public DbSet<GuildEvent> GuildEvents { get; private set; }
         public DbSet<GuildPrefix> GuildPrefixes { get; private set; }
+        [Obsolete("This system has been deactivated")]
         public DbSet<GuildKarmaRecord> GuildKarmaRecords { get; private set; }
-        public DbSet<UserCard> UserCards { get; private set; }
         public DbSet<GuildBackgroundJob> GuildBackgroundJobs { get; private set; }
+        public DbSet<GuildLogsChannel> GuildLogsChannels { get; private set; }
+        public DbSet<GuildModerationAuditRecord> GuildModerationAuditRecords { get; private set; }
+        #endregion
+
+        #region User Specific Databases
+        public DbSet<UserTimeZone> UserTimeZones { get; private set; }
+        public DbSet<UserCard> UserCards { get; private set; }
+        #endregion
 
         private string DbConnectionString { get; set; }
         private ILoggerFactory _loggerFactory { get; set; }
@@ -62,7 +71,8 @@ namespace HandyHansel.Models
 
             optionsBuilder
                 .UseLoggerFactory(this._loggerFactory)
-                .UseNpgsql(this.DbConnectionString);
+                .UseNpgsql(this.DbConnectionString,
+                    o => o.UseNodaTime());
         }
 
         protected override void OnModelCreating(ModelBuilder builder)

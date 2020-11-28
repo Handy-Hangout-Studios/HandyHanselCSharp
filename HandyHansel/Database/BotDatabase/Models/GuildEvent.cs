@@ -10,7 +10,7 @@ namespace HandyHansel.Models
         [Column("id")]
         public int Id { get; set; }
 
-        [Column("guild")] public ulong GuildId { get; set; }
+        [Column("guild_id")] public ulong GuildId { get; set; }
 
         [Column("event_name")] public string EventName { get; set; }
 

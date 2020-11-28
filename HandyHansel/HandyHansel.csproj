@@ -9,43 +9,47 @@
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="DSharpPlus.Lavalink" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-nightly-00748" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.17" />
-    <PackageReference Include="Hangfire.Core" Version="1.7.17" />
-    <PackageReference Include="Hangfire.PostgreSql" Version="1.7.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Recognizers.Text.DateTime" Version="1.4.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.0-rc2" />
-    <PackageReference Include="Serilog.AspNetCore" Version="3.4.1-dev-00188" />
-    <PackageReference Include="Serilog.Exceptions" Version="5.7.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0-dev-00905" />
-    <PackageReference Include="Streamx.Linq.SQL" Version="3.1.10" />
-    <PackageReference Include="Streamx.Linq.SQL.EFCore" Version="3.1.16" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="DSharpPlus" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.Lavalink" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.Rest" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-rc1" />
+		<PackageReference Include="DSharpPlus.VoiceNext.Natives" Version="1.0.0" />
+		<PackageReference Include="Emzi0767.Common" Version="2.2.2" />
+		<PackageReference Include="HandyHangoutStudios.Common" Version="1.0.1" />
+		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.18" />
+		<PackageReference Include="Hangfire.Core" Version="1.7.18" />
+		<PackageReference Include="Hangfire.PostgreSql" Version="1.8.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.0">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="5.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
+		<PackageReference Include="Microsoft.Recognizers.Text.DateTime" Version="1.4.2" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.0" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime" Version="5.0.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="3.4.1-dev-00188" />
+		<PackageReference Include="Serilog.Exceptions" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="5.0.0-dev-00905" />
+		<PackageReference Include="Streamx.Linq.SQL" Version="3.1.10" />
+		<PackageReference Include="Streamx.Linq.SQL.EFCore" Version="3.1.16" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Commands\MinecraftCommands.cs" />
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Commands\MinecraftCommands.cs" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Remove="ActionGifs.txt" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Remove="ActionGifs.txt" />
+	</ItemGroup>
 
 </Project>
