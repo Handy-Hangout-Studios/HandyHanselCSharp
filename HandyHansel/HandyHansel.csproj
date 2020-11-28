@@ -17,11 +17,10 @@
 		<PackageReference Include="DSharpPlus.Rest" Version="4.0.0-rc1" />
 		<PackageReference Include="DSharpPlus.VoiceNext" Version="4.0.0-rc1" />
 		<PackageReference Include="DSharpPlus.VoiceNext.Natives" Version="1.0.0" />
-		<PackageReference Include="Emzi0767.Common" Version="2.2.2" />
 		<PackageReference Include="HandyHangoutStudios.Common" Version="1.0.1" />
 		<PackageReference Include="Hangfire.AspNetCore" Version="1.7.18" />
 		<PackageReference Include="Hangfire.Core" Version="1.7.18" />
-		<PackageReference Include="Hangfire.PostgreSql" Version="1.8.0" />
+		<PackageReference Include="Hangfire.PostgreSql" Version="1.8.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.0">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
