@@ -1,4 +1,6 @@
 ﻿using HandyHansel.BotDatabase;
+using HandyHansel.BotDatabase.Models;
+using NodaTime;
 using System;
 using System.Collections.Generic;
 
@@ -6,6 +8,10 @@ namespace HandyHansel.Models
 {
     public interface IBotAccessProvider : IDisposable
     {
+        #region Database Maintenance
+        void Migrate();
+        #endregion
+
         #region User Time Zones
 
         /// <summary>
@@ -101,7 +107,7 @@ namespace HandyHansel.Models
         /// <param name="jobName">The name associated with the job</param>
         /// <param name="scheduledTime">The time the job is scheduled to run</param>
         /// <param name="guildJobType">The kind of job that's being scheduled</param>
-        void AddGuildBackgroundJob(string hangfireJobId, ulong guildId, string jobName, DateTime scheduledTime, GuildJobType guildJobType);
+        void AddGuildBackgroundJob(string hangfireJobId, ulong guildId, string jobName, Instant scheduledTime, GuildJobType guildJobType);
 
         /// <summary>
         /// Deletes the specified Guild Background Job
@@ -123,6 +129,7 @@ namespace HandyHansel.Models
         ///  Update all Karma Records in the list and create new ones for any that don't currently exist in the database.
         /// </summary>
         /// <param name="karmaRecords">List of Karma Records to Add and Update</param>
+        [Obsolete("This system has been deactivated")]
         void BulkUpdateKarma(IEnumerable<GuildKarmaRecord> karmaRecords);
 
         /// <summary>
@@ -139,7 +146,13 @@ namespace HandyHansel.Models
         /// <param name="userId">User ID</param>
         /// <param name="guildId">Guild ID</param>
         /// <returns></returns>
+        [Obsolete("This system has been deactivated")]
         GuildKarmaRecord GetUsersGuildKarmaRecord(ulong userId, ulong guildId);
+
+        [Obsolete("This system has been deactivated")]
+        IEnumerable<GuildKarmaRecord> GetGuildKarmaRecords(ulong guildId);
+
+        public void RemoveUsersGuildKarmaRecord(ulong guildId, ulong userId);
         #endregion
 
         #region User Cards
@@ -150,6 +163,48 @@ namespace HandyHansel.Models
         /// <param name="userId">The user to fetch the user card for.</param>
         /// <returns></returns>
         UserCard GetUsersUserCard(ulong userId);
+        #endregion
+
+        #region Guild Logs Channel
+        /// <summary>
+        /// Add or update a guilds log channel which is where all action events are sent.
+        /// </summary>
+        /// <param name="guildId">The guild for which this log channel will apply</param>
+        /// <param name="channelId">The channel in the guild where logs will be sent</param>
+        public void AddOrUpdateGuildLogChannel(ulong guildId, ulong channelId);
+
+        /// <summary>
+        /// Remove a guilds log channel completely
+        /// </summary>
+        /// <param name="guildId"></param>
+        public void RemoveGuildLogChannel(ulong guildId);
+
+        /// <summary>
+        /// Get a Guilds log channel
+        /// </summary>
+        /// <param name="guildId">The Guild to get the log channel for</param>
+        public GuildLogsChannel GetGuildLogChannel(ulong guildId);
+        #endregion
+
+        #region Guild Moderation Audit Records
+        /// <summary>
+        /// Add a moderation audit record
+        /// </summary>
+        /// <param name="guildId">Guild in which the action took place</param>
+        /// <param name="modUserId">The moderator who took action</param>
+        /// <param name="userId">The user who had action taken against them</param>
+        /// <param name="action">The action taken against them</param>
+        /// <param name="reason">The reason for the action taken</param>
+        public void AddModerationAuditRecord(ulong guildId, ulong modUserId, ulong userId, ModerationActionType action, string reason);
+
+        /// <summary>
+        /// Get all guild moderation audit records filtered on Moderator, User, and Moderation Action.
+        /// </summary>
+        /// <param name="guildId">Guild to get the records for</param>
+        /// <param name="modUserId">The moderator who took action</param>
+        /// <param name="userId">The user who had action taken against them</param>
+        /// <param name="action">The kind of action taken</param>
+        public IEnumerable<GuildModerationAuditRecord> GetGuildModerationAuditRecords(ulong guildId, ulong? modUserId = null, ulong? userId = null, ModerationActionType? action = null);
         #endregion
     }
 }

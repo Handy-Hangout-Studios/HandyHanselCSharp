@@ -1,4 +1,4 @@
-﻿using System;
+﻿using NodaTime;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -18,19 +18,22 @@ namespace HandyHansel.Models
         public string JobName { get; set; }
 
         [Column("scheduled_time")]
-        public DateTime ScheduledTime { get; set; }
+        public Instant ScheduledTime { get; set; }
+
+        [NotMapped]
+        public ZonedDateTime ScheduledTimeInTimeZone { get; set; }
 
         [Column("job_type")]
         public GuildJobType GuildJobType { get; set; }
 
-        public GuildBackgroundJob WithTimeZoneConvertedTo(TimeZoneInfo timezone)
+        public GuildBackgroundJob WithTimeZoneConvertedTo(DateTimeZone timezone)
         {
             return new GuildBackgroundJob
             {
                 HangfireJobId = this.HangfireJobId,
                 GuildId = this.GuildId,
                 JobName = this.JobName,
-                ScheduledTime = TimeZoneInfo.ConvertTimeFromUtc(this.ScheduledTime, timezone),
+                ScheduledTimeInTimeZone = this.ScheduledTime.InZone(timezone),
                 GuildJobType = this.GuildJobType,
             };
         }
@@ -38,6 +41,8 @@ namespace HandyHansel.Models
 
     public enum GuildJobType
     {
-        SCHEDULED_EVENT
+        SCHEDULED_EVENT,
+        TEMP_BAN,
+        TEMP_MUTE,
     }
 }

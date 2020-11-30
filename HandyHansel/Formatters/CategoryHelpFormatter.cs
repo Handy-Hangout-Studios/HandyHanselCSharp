@@ -53,23 +53,30 @@ namespace HandyHansel
                 StringBuilder allUsageStrings = new StringBuilder();
                 StringBuilder allArguments = new StringBuilder();
 
+                ISet<string> argNames = new HashSet<string>();
                 foreach (CommandOverload co in command.Overloads.OrderByDescending(x => x.Priority))
                 {
-                    allUsageStrings.Append("`").Append(command.QualifiedName);
+                    allUsageStrings.Append('`').Append(command.QualifiedName);
                     foreach (CommandArgument ca in co.Arguments)
                     {
                         bool opt = ca.IsOptional;
                         bool cAll = ca.IsCatchAll;
                         allUsageStrings.Append(opt || cAll ? " [" : " <").Append(ca.Name).Append(cAll ? "..." : "").Append(opt || cAll ? "]" : ">");
-                        allArguments
-                            .Append("`")
-                            .Append(ca.Name)
-                            .Append(" (")
-                            .Append(this.CommandsNext.GetUserFriendlyTypeName(ca.Type))
-                            .Append(")` - ")
-                            .Append(opt ? "optional - " : "")
-                            .Append(ca.Description ?? "No description provided. Please contact the dev team.")
-                            .Append("\n");
+
+                        if (!argNames.Contains(ca.Name))
+                        {
+                            allArguments
+                                .Append('`')
+                                .Append(ca.Name)
+                                .Append(" (")
+                                .Append(this.CommandsNext.GetUserFriendlyTypeName(ca.Type))
+                                .Append(")` - ")
+                                .Append(opt ? "optional - " : "")
+                                .Append(ca.Description ?? "No description provided. Please contact the dev team.")
+                                .Append('\n');
+                        }
+
+                        argNames.Add(ca.Name);
                     }
                     allUsageStrings.Append("`\n");
                 }
@@ -113,19 +120,19 @@ namespace HandyHansel
 
             if (currentLevelCommands.Any())
             {
-                this._embed.AddField(this._command == null ? "Commands:" : "Sub-commands:", string.Join(", ", currentLevelCommands.Select(x => Formatter.InlineCode(x.Name))), true);
+                this._embed.AddField(this._command == null ? "Commands:" : "Sub-commands:", string.Join(", ", currentLevelCommands.Select(x => Formatter.InlineCode(x.Name))));
             }
 
             if (groupCommands.Any())
             {
-                this._embed.AddField(this._command == null ? "Groups:" : "Sub-groups:", string.Join(", ", groupCommands.Select(x => Formatter.InlineCode(x.Name))), true);
+                this._embed.AddField(this._command == null ? "Groups:" : "Sub-groups:", string.Join(", ", groupCommands.Select(x => Formatter.InlineCode(x.Name))));
             }
 
             if (modules.Any())
             {
                 foreach (KeyValuePair<string, ISet<string>> moduleLists in modules)
                 {
-                    this._embed.AddField(moduleLists.Key, string.Join(", ", moduleLists.Value.Select(Formatter.InlineCode)), true);
+                    this._embed.AddField($"{moduleLists.Key}:", string.Join(", ", moduleLists.Value.Select(Formatter.InlineCode)));
                 }
             }
 

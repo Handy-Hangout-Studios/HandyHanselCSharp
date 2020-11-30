@@ -1,14 +1,19 @@
 ﻿using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 using HandyHansel.Attributes;
 using HandyHansel.BotDatabase;
 using HandyHansel.Models;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace HandyHansel.Commands
 {
+    [Obsolete("This command module has been deactivated")]
     internal class KarmaCommands : BaseCommandModule
     {
         private readonly Random _rng = new Random();
@@ -45,8 +50,8 @@ namespace HandyHansel.Commands
         [Aliases("++", "u")]
         [BotCategory("Karma")]
         [Description("Upvote another Discord user and bestow them 3 hours worth of karma from nothingness.\n\n*This karma is not taken from you.*")]
-        [Cooldown(1, 86400, CooldownBucketType.User)]
-        public async Task GiveKarma(CommandContext context, [Description("The discord user you'd like to give karma.")] DiscordMember member)
+        [Cooldown(1, 86400, CooldownBucketType.User | CooldownBucketType.Guild)]
+        public async Task GiveKarma(CommandContext context, [Description("The discord user you'd like to give karma.")] DiscordUser member)
         {
             if (member.Equals(context.Member))
             {
@@ -68,6 +73,43 @@ namespace HandyHansel.Commands
             DiscordEmbed response = new DiscordEmbedBuilder()
                 .WithDescription($"{member.Mention}, you have been bestowed {karmaToAdd} karma.");
             await context.RespondAsync(embed: response);
+        }
+
+        [Command("leaderboard")]
+        [Aliases("lb")]
+        [BotCategory("Karma")]
+        [Description("Show the leaderboard ")]
+        public async Task ShowLeaderBoard(CommandContext context)
+        {
+            using IBotAccessProvider provider = this.providerBuilder.Build();
+            List<GuildKarmaRecord> leaderboardRecords = provider.GetGuildKarmaRecords(context.Guild.Id)
+                .OrderByDescending(record => record.CurrentKarma).ToList();
+            int requestorRanking = leaderboardRecords.FindIndex(record => record.UserId == context.User.Id) + 1;
+
+            StringBuilder leaderboardBuilder = new StringBuilder()
+                .AppendLine("```")
+                .AppendLine($"Your rank: {requestorRanking}")
+                .AppendLine(new string('-', 20));
+
+            int index = 1;
+            foreach (GuildKarmaRecord record in leaderboardRecords)
+            {
+                try
+                {
+                    DiscordMember member = await context.Guild.GetMemberAsync(record.UserId);
+                    leaderboardBuilder.AppendLine($"{index}. {member.DisplayName} - {record.CurrentKarma} karma");
+                    index++;
+
+                    if (index > 10)
+                    {
+                        break;
+                    }
+                }
+                catch (NotFoundException) { }
+            }
+
+            leaderboardBuilder.Append("```");
+            await context.RespondAsync(leaderboardBuilder.ToString());
         }
     }
 }

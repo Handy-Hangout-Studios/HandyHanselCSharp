@@ -1,4 +1,5 @@
 ﻿using HandyHansel.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -16,6 +17,7 @@ namespace HandyHansel.BotDatabase
 
         public UserTimeZone UserTimeZone;
 
+        [Obsolete("This system has been deactivated")]
         public List<GuildKarmaRecord> KarmaRecords;
     }
 }

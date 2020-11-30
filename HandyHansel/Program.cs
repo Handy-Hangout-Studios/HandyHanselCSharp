@@ -1,9 +1,14 @@
-﻿using HandyHansel.Models;
+﻿using HandyHansel.Database.TypeHandlers;
+using HandyHansel.Models;
+using HandyHansel.Services;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Hangfire.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NodaTime;
+using NodaTime.TimeZones;
 using Npgsql;
 using Serilog;
 using Serilog.Formatting.Json;
@@ -18,6 +23,12 @@ namespace HandyHansel
             CreateHostBuilder(args)
                            .Build()
                            .Run();
+
+            using IStorageConnection connection = JobStorage.Current.GetConnection();
+            foreach (RecurringJobDto rJob in StorageConnectionExtensions.GetRecurringJobs(connection))
+            {
+                RecurringJob.RemoveIfExists(rJob.Id);
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
@@ -25,7 +36,8 @@ namespace HandyHansel
             return Host.CreateDefaultBuilder(args)
                            .UseSerilog((hostingContext, services, loggerConfiguration) => loggerConfiguration
                                .Enrich.FromLogContext()
-                               .WriteTo.File(new JsonFormatter(renderMessage: true), "log.txt")
+                               .WriteTo.File(formatter: new JsonFormatter(renderMessage: true),
+                                             "log.txt")
                                .WriteTo.Console()
                                .MinimumLevel.Debug()
                            )
@@ -59,20 +71,29 @@ namespace HandyHansel
             };
 
             _ = services
-                .AddSingleton<IBotAccessProviderBuilder, BotAccessProviderBuilder>()
+                .AddScoped<IClock>((p) => SystemClock.Instance)
+                .AddScoped<IDateTimeZoneSource>((p) => TzdbDateTimeZoneSource.Default)
+                .AddScoped<IDateTimeZoneProvider, DateTimeZoneCache>()
+                .AddScoped<IBotAccessProviderBuilder, BotAccessProviderBuilder>()
                 .AddSingleton<BotService>()
-                .AddHangfire(configuration => configuration
-                    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-                    .UseSimpleAssemblyNameTypeSerializer()
-                    .UseRecommendedSerializerSettings()
-                    .UsePostgreSqlStorage(connectionStringBuilder.ConnectionString, new PostgreSqlStorageOptions { DistributedLockTimeout = TimeSpan.FromMinutes(1), }))
+                .AddScoped<EventService>()
+                .AddScoped<ModerationService>()
+                .AddHostedService<NormHostedService>()
+                .AddHangfire(configuration =>
+                {
+                    configuration
+                        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                        .UseSimpleAssemblyNameTypeSerializer()
+                        .UseRecommendedSerializerSettings()
+                        .UsePostgreSqlStorage(connectionStringBuilder.ConnectionString, new PostgreSqlStorageOptions { DistributedLockTimeout = TimeSpan.FromMinutes(1), });
+                    Dapper.SqlMapper.AddTypeHandler(new DapperDateTimeTypeHandler());
+                })
                 .AddHangfireServer(opts =>
                 {
                     opts.StopTimeout = TimeSpan.FromSeconds(15);
                     opts.ShutdownTimeout = TimeSpan.FromSeconds(30);
                     opts.WorkerCount = 4;
-                })
-                .AddHostedService<NormHostedService>();
+                });
         }
     }
 }

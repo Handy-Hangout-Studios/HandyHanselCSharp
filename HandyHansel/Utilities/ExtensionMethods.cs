@@ -4,9 +4,11 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Enums;
+using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,11 +16,10 @@ namespace HandyHansel.Utilities
 {
     public static class ExtensionMethods
     {
-        public static TaskCompletionSource<DiscordEventArgs> discordEventSubscriber;
+        private static TaskCompletionSource<DiscordEventArgs> DiscordEventSubscriber { get; set; }
 
-        public static async Task<CustomResult<T>> WaitForMessagePaginationOnMsg<T>(
-               this InteractivityExtension interactivity,
-               CommandContext context,
+        public static async Task<CustomResult<T>> WaitForMessageAndPaginateOnMsg<T>(
+               this CommandContext context,
                IEnumerable<Page> pages,
                Func<MessageCreateEventArgs, Task<(bool, T)>> messageValidationAndReturn,
                PaginationEmojis paginationEmojis = null,
@@ -27,14 +28,12 @@ namespace HandyHansel.Utilities
                DiscordMessage msg = null)
         {
             List<Page> pagesList = pages.ToList();
-            paginationEmojis ??= new PaginationEmojis
-            {
-                SkipLeft = DiscordEmoji.FromName(context.Client, ":track_previous:"),
-                Left = DiscordEmoji.FromName(context.Client, ":arrow_backward:"),
-                Right = DiscordEmoji.FromName(context.Client, ":arrow_forward:"),
-                SkipRight = DiscordEmoji.FromName(context.Client, ":track_next:"),
-                Stop = DiscordEmoji.FromName(context.Client, ":stop_button:")
-            };
+            paginationEmojis ??= new PaginationEmojis();
+            paginationEmojis.SkipLeft ??= DiscordEmoji.FromName(context.Client, ":track_previous:");
+            paginationEmojis.Left ??= DiscordEmoji.FromName(context.Client, ":arrow_backward:");
+            paginationEmojis.Right ??= DiscordEmoji.FromName(context.Client, ":arrow_forward:");
+            paginationEmojis.SkipRight ??= DiscordEmoji.FromName(context.Client, ":track_next:");
+            paginationEmojis.Stop ??= DiscordEmoji.FromName(context.Client, ":stop_button:");
 
             int currentPage = 0;
             if (msg == null)
@@ -55,48 +54,57 @@ namespace HandyHansel.Utilities
 
             async Task messageCreated(DiscordClient c, MessageCreateEventArgs a)
             {
-                if (a.Channel.Id == context.Channel.Id && a.Author.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Channel.Id == context.Channel.Id && a.Author.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             async Task reactionAdded(DiscordClient c, MessageReactionAddEventArgs a)
             {
-                if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             async Task reactionRemoved(DiscordClient c, MessageReactionRemoveEventArgs a)
             {
-                if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                await Task.Run(() =>
                 {
-                    discordEventSubscriber?.TrySetResult(a);
-                }
+                    if (a.Message.Id == msg.Id && a.User.Id == context.Member.Id)
+                    {
+                        DiscordEventSubscriber?.TrySetResult(a);
+                    }
+                });
             }
 
             while (true)
             {
-                discordEventSubscriber = new TaskCompletionSource<DiscordEventArgs>();
-                interactivity.Client.MessageCreated += messageCreated;
-                interactivity.Client.MessageReactionAdded += reactionAdded;
-                interactivity.Client.MessageReactionRemoved += reactionRemoved;
+                DiscordEventSubscriber = new TaskCompletionSource<DiscordEventArgs>();
+                context.Client.MessageCreated += messageCreated;
+                context.Client.MessageReactionAdded += reactionAdded;
+                context.Client.MessageReactionRemoved += reactionRemoved;
 
-                await Task.WhenAny(discordEventSubscriber.Task, Task.Delay(60000));
+                await Task.WhenAny(DiscordEventSubscriber.Task, Task.Delay(60000));
 
-                interactivity.Client.MessageCreated -= messageCreated;
-                interactivity.Client.MessageReactionAdded -= reactionAdded;
-                interactivity.Client.MessageReactionRemoved -= reactionRemoved;
+                context.Client.MessageCreated -= messageCreated;
+                context.Client.MessageReactionAdded -= reactionAdded;
+                context.Client.MessageReactionRemoved -= reactionRemoved;
 
-                if (!discordEventSubscriber.Task.IsCompleted)
+                if (!DiscordEventSubscriber.Task.IsCompleted)
                 {
                     return new CustomResult<T>(timedOut: true);
                 }
 
-                DiscordEventArgs discordEvent = discordEventSubscriber.Task.Result;
-                discordEventSubscriber = null;
+                DiscordEventArgs discordEvent = DiscordEventSubscriber.Task.Result;
+                DiscordEventSubscriber = null;
 
                 if (discordEvent is MessageCreateEventArgs messageEvent)
                 {
@@ -189,6 +197,90 @@ namespace HandyHansel.Utilities
                     }
                 }
             }
+        }
+
+        //public static string WithDiscordMarkdownStripped(this string content)
+        //{
+        //    Regex discordMarkdownCharacters = new Regex("");
+
+        //    MatchEvaluator evaluator = new MatchEvaluator((match) => "\\" + match.Value);
+
+        //    return discordMarkdownCharacters.Replace(content, evaluator);
+        //}
+
+        public static string AsHumanReadableString(this Period period)
+        {
+            StringBuilder humanReadableString = new StringBuilder();
+
+            Period normalizedPeriod = period.Normalize();
+
+            if (normalizedPeriod.Years > 0)
+            {
+                humanReadableString.Append($"{normalizedPeriod.Years} years");
+            }
+
+            if (normalizedPeriod.Weeks > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Weeks} weeks");
+            }
+
+            if (normalizedPeriod.Days > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Days} days");
+            }
+
+            if (normalizedPeriod.Hours > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Hours} hours");
+            }
+
+            if (normalizedPeriod.Minutes > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Minutes} minutes");
+            }
+
+            if (normalizedPeriod.Seconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Seconds} seconds");
+            }
+
+            if (normalizedPeriod.Milliseconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Milliseconds} milliseconds");
+            }
+
+            if (normalizedPeriod.Nanoseconds > 0)
+            {
+                humanReadableString.Append(humanReadableString.Length > 0 ? ", " : "").Append($"{normalizedPeriod.Nanoseconds} nanoseconds");
+            }
+
+            return humanReadableString.ToString();
+        }
+    }
+
+    public static class PaginationMessageFunction
+    {
+        /// <summary>
+        /// Creates a function that will return a bool stating whether the message was accepted and a int that was parsed from the message.
+        /// </summary>
+        /// <param name="user">The user's whose messages to watch</param>
+        /// <param name="channel">The channel to watch the messages from</param>
+        /// <param name="min">The inclusive minimum the result should be</param>
+        /// <param name="max">The exclusive maximum the result should be</param>
+        /// <returns>The function to be used for the custom pagination solution</returns>
+        public static Func<MessageCreateEventArgs, Task<(bool, int)>> CreateWaitForMessageWithIntInRange(DiscordUser user, DiscordChannel channel, int min, int max)
+        {
+            return new Func<MessageCreateEventArgs, Task<(bool, int)>>((eventArgs) =>
+            {
+                if (eventArgs.Channel.Equals(channel) && eventArgs.Author.Equals(user) && int.TryParse(eventArgs.Message.Content, out int eventToChoose) && eventToChoose >= min && eventToChoose < max)
+                {
+                    return Task.FromResult((true, eventToChoose));
+                }
+                else
+                {
+                    return Task.FromResult((false, -1));
+                }
+            });
         }
     }
 }

@@ -15,8 +15,5 @@ namespace HandyHansel.Models
 
         [Column("timezone_id")]
         public string TimeZoneId { get; set; }
-
-        [Column("operating_system")]
-        public string OperatingSystem { get; set; }
     }
 }
