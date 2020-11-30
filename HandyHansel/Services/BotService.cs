@@ -1,6 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.CommandsNext.Converters;
 using DSharpPlus.CommandsNext.Exceptions;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -11,6 +12,7 @@ using DSharpPlus.VoiceNext;
 using HandyHangoutStudios.Parsers;
 using HandyHangoutStudios.Parsers.Models;
 using HandyHangoutStudios.Parsers.Resolutions;
+using HandyHansel.BotDatabase.Models;
 using HandyHansel.Commands;
 using HandyHansel.Models;
 using Microsoft.Extensions.Logging;
@@ -36,7 +38,7 @@ namespace HandyHansel
 #pragma warning disable IDE0052 // Remove unread private members
         private IReadOnlyDictionary<int, InteractivityExtension> interactivity;
 #pragma warning restore IDE0052 // Remove unread private members
-        private readonly IBotAccessProviderBuilder accessBuilder;
+        private readonly IBotAccessProviderBuilder providerBuilder;
         private readonly IDateTimeZoneProvider timeZoneProvider;
         private readonly ILogger logger;
 
@@ -80,8 +82,11 @@ namespace HandyHansel
             this.Client = new DiscordShardedClient(ClientConfig);
             this._devUserId = botConfig.Value.DevId;
             this.logger = loggerFactory.CreateLogger("BotService");
-            this.accessBuilder = dataAccessProviderBuilder;
+            this.providerBuilder = dataAccessProviderBuilder;
             this.timeZoneProvider = timeZoneProvider;
+
+            using IBotAccessProvider provider = providerBuilder.Build();
+            provider.Migrate();
         }
 
         public async Task StartAsync()
@@ -106,6 +111,8 @@ namespace HandyHansel
                 pair.Value.CommandErrored += this.CheckCommandExistsError;
                 pair.Value.CommandErrored += this.LogExceptions;
                 pair.Value.SetHelpFormatter<CategoryHelpFormatter>();
+                EnumConverter<ModerationActionType> enumConverter = new EnumConverter<ModerationActionType>();
+                pair.Value.RegisterConverter(enumConverter);
             }
 
             //this.Client.MessageCreated += this.EarnKarma;
@@ -249,7 +256,7 @@ namespace HandyHansel
                 {
                     try
                     {
-                        using IBotAccessProvider database = this.accessBuilder.Build();
+                        using IBotAccessProvider database = this.providerBuilder.Build();
                         DiscordMember reactor = (DiscordMember)e.User;
                         DiscordMessage msg = await channel.GetMessageAsync(e.Message.Id);
                         IEnumerable<DateTimeV2ModelResult> parserList = DateTimeRecognizer.RecognizeDateTime(msg.Content, culture: Culture.English)
@@ -274,7 +281,7 @@ namespace HandyHansel
 
                         if (reactorTimeZoneId is null)
                         {
-                            await channel.SendMessageAsync("You have not set up a time zone yet.");
+                            await channel.SendMessageAsync("You have not set up a time zone yet. Use `time init` to set up your time zone.");
                             return;
                         }
 
@@ -348,7 +355,7 @@ namespace HandyHansel
         private async Task<int> PrefixResolver(DiscordMessage msg)
 
         {
-            using IBotAccessProvider dataAccessProvider = this.accessBuilder.Build();
+            using IBotAccessProvider dataAccessProvider = this.providerBuilder.Build();
             List<GuildPrefix> guildPrefixes = dataAccessProvider.GetAllAssociatedGuildPrefixes(msg.Channel.GuildId).ToList();
 
             if (!guildPrefixes.Any())

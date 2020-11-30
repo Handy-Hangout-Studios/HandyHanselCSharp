@@ -8,6 +8,10 @@ namespace HandyHansel.Models
 {
     public interface IBotAccessProvider : IDisposable
     {
+        #region Database Maintenance
+        void Migrate();
+        #endregion
+
         #region User Time Zones
 
         /// <summary>

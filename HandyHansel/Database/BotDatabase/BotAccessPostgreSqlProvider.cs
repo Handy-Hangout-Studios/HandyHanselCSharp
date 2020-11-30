@@ -38,6 +38,13 @@ namespace HandyHansel.Models
             this.context?.Dispose();
         }
 
+        #region Database Maintenance
+        public void Migrate()
+        {
+            context.Database.Migrate();
+        }
+        #endregion
+
         #region UserTimeZones
 
         public void AddUserTimeZone(ulong userId, string timeZoneId)

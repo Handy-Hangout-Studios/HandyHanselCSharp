@@ -4,6 +4,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Enums;
 using DSharpPlus.Interactivity.Extensions;
 using HandyHangoutStudios.Parsers;
 using HandyHangoutStudios.Parsers.Models;
@@ -68,6 +69,7 @@ namespace HandyHansel.Commands
                 .WithFooter($"{this.clock.GetCurrentInstant():g}");
 
             await logChannel.SendMessageAsync(embed: successEmbed);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
         }
 
         [Command("ban")]
@@ -82,18 +84,25 @@ namespace HandyHansel.Commands
             [Description("Reason for ban")]
             [RemainingText] string reason = null)
         {
-            await member.BanAsync(numDays, reason);
+            DiscordEmbedBuilder messageEmbed = new DiscordEmbedBuilder()
+               .WithTitle($"You have been banned from {context.Guild.Name}!");
+
+            if (reason != null)
+            {
+                messageEmbed.AddField("Reason:", reason);
+            }
 
             using IBotAccessProvider provider = this.providerBuilder.Build();
-            provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.BAN, reason);
-            GuildLogsChannel logsChannel = provider.GetGuildLogChannel(context.Guild.Id);
 
-            if (logsChannel == null)
+            DiscordChannel logChannel = await SendModerationEmbedAndGetLogChannel(messageEmbed, member, context.Member, context.Guild, provider);
+            await member.BanAsync(numDays, reason);
+
+            provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.BAN, reason);
+
+            if (logChannel == null)
             {
                 return;
             }
-
-            DiscordChannel logChannel = context.Guild.GetChannel(logsChannel.ChannelId);
 
             DiscordEmbedBuilder successEmbed = new DiscordEmbedBuilder()
                 .WithTitle($"{member.Username} was banned")
@@ -106,6 +115,7 @@ namespace HandyHansel.Commands
             }
 
             await logChannel.SendMessageAsync(embed: successEmbed);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
         }
 
         [Command("ban")]
@@ -156,6 +166,7 @@ namespace HandyHansel.Commands
             DiscordChannel logChannel = await SendModerationEmbedAndGetLogChannel(messageEmbed, member, context.Member, context.Guild, provider);
 
             await member.BanAsync(numDays, reason);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
 
             provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.TEMPBAN, reason);
 
@@ -211,6 +222,7 @@ namespace HandyHansel.Commands
             await member.RemoveAsync(reason);
 
             provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.KICK, reason);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
 
             if (logChannel == null)
             {
@@ -259,6 +271,7 @@ namespace HandyHansel.Commands
             await member.GrantRoleAsync(mutedRole, reason);
 
             provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.MUTE, reason);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
 
             if (logChannel == null)
             {
@@ -325,6 +338,7 @@ namespace HandyHansel.Commands
             await member.GrantRoleAsync(mutedRole, reason);
 
             provider.AddModerationAuditRecord(context.Guild.Id, context.User.Id, member.Id, ModerationActionType.MUTE, reason);
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
 
             if (logChannel == null)
             {
@@ -363,6 +377,17 @@ namespace HandyHansel.Commands
             await member.RevokeRoleAsync(mutedRole);
 
             await member.SendMessageAsync($"You have just been unmuted in {context.Guild.Name}");
+            await context.Message.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":white_check_mark:"));
+
+            // Add output message to logging channel
+            DiscordChannel logChannel = GetGuildLogChannel(context.Guild, providerBuilder.Build());
+
+            if (logChannel == null)
+            {
+                return;
+            }
+
+            await logChannel.SendMessageAsync($"{member.DisplayName} was just unmuted.");
         }
 
         [Command("audit")]
@@ -390,7 +415,7 @@ namespace HandyHansel.Commands
 
             InteractivityExtension interactivity = context.Client.GetInteractivity();
 
-            await interactivity.SendPaginatedMessageAsync(context.Channel, context.User, auditPages);
+            await interactivity.SendPaginatedMessageAsync(context.Channel, context.User, auditPages, emojis: null, behaviour: PaginationBehaviour.Ignore, PaginationDeletion.DeleteMessage, timeoutoverride: TimeSpan.FromMinutes(5));
         }
 
         private static List<Page> GenerateAuditPages(List<GuildModerationAuditRecord> auditRecords, IDictionary<ulong, DiscordMember> memberDict, DiscordUser user)
@@ -448,6 +473,11 @@ namespace HandyHansel.Commands
             };
         }
 
+        [Command("audit")]
+        public async Task ShowAuditLogVersionThree(CommandContext context, ModerationActionType action)
+        {
+            await this.ShowAuditLogVersionOne(context, null, null, action);
+        }
 
         private static async Task<DiscordRole> GetOrCreateMutedRole(CommandContext context)
         {
@@ -468,12 +498,7 @@ namespace HandyHansel.Commands
 
         private static async Task<DiscordChannel> SendModerationEmbedAndGetLogChannel(DiscordEmbed embed, DiscordMember member, DiscordMember moderator, DiscordGuild guild, IBotAccessProvider provider)
         {
-            GuildLogsChannel guildLogsChannel = provider.GetGuildLogChannel(guild.Id);
-            DiscordChannel logChannel = null;
-            if (guildLogsChannel != null)
-            {
-                logChannel = guild.GetChannel(guildLogsChannel.ChannelId);
-            }
+            DiscordChannel logChannel = GetGuildLogChannel(guild, provider);
 
             try
             {
@@ -487,8 +512,26 @@ namespace HandyHansel.Commands
                 }
                 else
                 {
-                    await moderator.SendMessageAsync("This user has closed their DMs and so I was not able to message the user.");
+                    try
+                    {
+                        await moderator.SendMessageAsync("This user has closed their DMs and so I was not able to message the user.");
+                    }
+                    catch (UnauthorizedException)
+                    {
+                    }
                 }
+            }
+
+            return logChannel;
+        }
+
+        private static DiscordChannel GetGuildLogChannel(DiscordGuild guild, IBotAccessProvider provider)
+        {
+            GuildLogsChannel guildLogsChannel = provider.GetGuildLogChannel(guild.Id);
+            DiscordChannel logChannel = null;
+            if (guildLogsChannel != null)
+            {
+                logChannel = guild.GetChannel(guildLogsChannel.ChannelId);
             }
 
             return logChannel;

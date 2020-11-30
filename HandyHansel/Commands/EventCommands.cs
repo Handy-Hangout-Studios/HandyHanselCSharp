@@ -86,7 +86,7 @@ namespace HandyHansel.Commands
         }
 
         [Command("cschedule")]
-        [Description("Create and schedule an event for the time given announced to the role given.")]
+        [Description("Create and schedule an event for the time given announced to the role given or the `@everyone` role if no role is specified.")]
         [RequirePermissions(Permissions.MentionEveryone)]
         [BotCategory("Scheduling sub-commands")]
         public async Task CreateAndScheduleGuildEvent(
@@ -149,7 +149,7 @@ namespace HandyHansel.Commands
             string datetimeString
         )
         {
-            await this.CreateAndScheduleGuildEvent(context, announcementChannel, context.Guild.EveryoneRole, datetimeString);
+            await this.CreateAndScheduleGuildEvent(context, announcementChannel, null, datetimeString);
         }
 
         [Command("schedule")]
@@ -219,7 +219,7 @@ namespace HandyHansel.Commands
             string datetimeString
         )
         {
-            await this.ScheduleGuildEvent(context, announcementChannel, context.Guild.EveryoneRole, datetimeString);
+            await this.ScheduleGuildEvent(context, announcementChannel, null, datetimeString);
         }
 
         private void ScheduleEventsForRole(CommandContext context, DiscordChannel announcementChannel, IBotAccessProvider provider, GuildEvent selectedEvent, Instant eventDateTime, DiscordRole role)
@@ -231,7 +231,7 @@ namespace HandyHansel.Commands
                             context.Guild.Id,
                             context.Member.Id,
                             announcementChannel.Id,
-                            $"{role.Mention}, this event is starting now!",
+                            $"{(role == null ? "@everyone" : role.Mention)}, this event is starting now!",
                             selectedEvent.EventName,
                             selectedEvent.EventDesc),
                 eventScheduleDuration.ToTimeSpan());
@@ -244,7 +244,7 @@ namespace HandyHansel.Commands
                             context.Guild.Id,
                             context.Member.Id,
                             announcementChannel.Id,
-                            $"{role.Mention}, this event is starting in 10 minutes!",
+                            $"{(role == null ? "@everyone" : role.Mention)}, this event is starting in 10 minutes!",
                             selectedEvent.EventName,
                             selectedEvent.EventDesc
                         ),
@@ -258,7 +258,7 @@ namespace HandyHansel.Commands
             List<GuildEvent> guildEvents = provider.GetAllAssociatedGuildEvents(context.Guild.Id).ToList();
             IEnumerable<Page> pages = GetGuildEventsPages(guildEvents, interactivity, scheduleEmbedBase);
             CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(pages,
-                PaginationMessageFunction.CreateWaitForMessageWithInt(context.User, context.Channel),
+                PaginationMessageFunction.CreateWaitForMessageWithIntInRange(context.User, context.Channel, 1, guildEvents.Count+1),
                 msg: msg
             );
             if (result.TimedOut || result.Cancelled)
@@ -269,7 +269,7 @@ namespace HandyHansel.Commands
                 return null;
             }
 
-            return guildEvents[result.Result];
+            return guildEvents[result.Result-1];
         }
 
         [Command("unschedule")]
@@ -305,7 +305,7 @@ namespace HandyHansel.Commands
 
             CustomResult<int> result = await context.WaitForMessageAndPaginateOnMsg(
                 GetScheduledEventsPages(guildEventJobs.Select(x => x.WithTimeZoneConvertedTo(memberTimeZone)), interactivity, removeEventEmbed),
-                PaginationMessageFunction.CreateWaitForMessageWithInt(context.User, context.Channel),
+                PaginationMessageFunction.CreateWaitForMessageWithIntInRange(context.User, context.Channel, 1, guildEventJobs.Count+1),
                 msg: msg);
 
             if (result.TimedOut || result.Cancelled)

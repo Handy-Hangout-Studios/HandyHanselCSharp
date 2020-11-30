@@ -33,7 +33,7 @@ namespace HandyHansel.Commands
             UserTimeZone memberTimeZone = provider.GetUsersTimeZone(context.User.Id);
             if (memberTimeZone == null)
             {
-                await context.RespondAsync("You don't have a timezone set up. Please try again after using `<prefix>time init`");
+                await context.RespondAsync("You don't have a timezone set up. Please try again after using `time init`");
                 return;
             }
 
@@ -54,7 +54,7 @@ namespace HandyHansel.Commands
             UserTimeZone memberTimeZone = provider.GetUsersTimeZone(member.Id);
             if (memberTimeZone == null)
             {
-                await context.RespondAsync("This user doesn't have a timezone set up. Please try again after the mentioned user has set up their timezone using `<prefix>time init`");
+                await context.RespondAsync("This user doesn't have a timezone set up. Please try again after the mentioned user has set up their timezone using `time init`");
                 return;
             }
 
@@ -76,7 +76,7 @@ namespace HandyHansel.Commands
             if (dataAccessProvider.GetUsersTimeZone(context.User.Id) != null)
             {
                 await context.RespondAsync(
-                    $"{context.User.Mention}, you already have a timezone set up. To update your timezone please type `<prefix>time update`.");
+                    $"{context.User.Mention}, you already have a timezone set up. To update your timezone please type `time update`.");
                 return;
             }
 
@@ -97,7 +97,7 @@ namespace HandyHansel.Commands
                 }
                 else
                 {
-                    await context.RespondAsync("You provided me with an invalid timezone. Try again by typing `<prefix>time init`.");
+                    await context.RespondAsync("You provided me with an invalid timezone. Try again by typing `time init`.");
                 }
             }
             else
@@ -116,7 +116,7 @@ namespace HandyHansel.Commands
             if (accessProvider.GetUsersTimeZone(context.User.Id) == null)
             {
                 await context.RespondAsync(
-                    $"{context.User.Mention}, you don't have a timezone set up. To initialize your timezone please type `<prefix>time init`.");
+                    $"{context.User.Mention}, you don't have a timezone set up. To initialize your timezone please type `time init`.");
                 return;
             }
             await context.RespondAsync(
@@ -137,13 +137,13 @@ namespace HandyHansel.Commands
                 }
                 else
                 {
-                    await context.RespondAsync("You provided me with an invalid timezone. Try again by typing `<prefix>time update`.");
+                    await context.RespondAsync("You provided me with an invalid timezone. Try again by typing `time update`.");
                 }
             }
             else
             {
                 await context.RespondAsync(
-                    "You either waited too long to respond. Try again by typing `<prefix>time update`.");
+                    "You either waited too long to respond. Try again by typing `time update`.");
             }
         }
     }

@@ -260,11 +260,19 @@ namespace HandyHansel.Utilities
 
     public static class PaginationMessageFunction
     {
-        public static Func<MessageCreateEventArgs, Task<(bool, int)>> CreateWaitForMessageWithInt(DiscordUser user, DiscordChannel channel)
+        /// <summary>
+        /// Creates a function that will return a bool stating whether the message was accepted and a int that was parsed from the message.
+        /// </summary>
+        /// <param name="user">The user's whose messages to watch</param>
+        /// <param name="channel">The channel to watch the messages from</param>
+        /// <param name="min">The inclusive minimum the result should be</param>
+        /// <param name="max">The exclusive maximum the result should be</param>
+        /// <returns>The function to be used for the custom pagination solution</returns>
+        public static Func<MessageCreateEventArgs, Task<(bool, int)>> CreateWaitForMessageWithIntInRange(DiscordUser user, DiscordChannel channel, int min, int max)
         {
             return new Func<MessageCreateEventArgs, Task<(bool, int)>>((eventArgs) =>
             {
-                if (eventArgs.Channel.Equals(channel) && eventArgs.Author.Equals(user) && int.TryParse(eventArgs.Message.Content, out int eventToChoose))
+                if (eventArgs.Channel.Equals(channel) && eventArgs.Author.Equals(user) && int.TryParse(eventArgs.Message.Content, out int eventToChoose) && eventToChoose >= min && eventToChoose < max)
                 {
                     return Task.FromResult((true, eventToChoose));
                 }
