@@ -36,7 +36,7 @@ jobs:
       run: dotnet publish -c Debug --output ./${{ env.RELEASE_PATH }}/x64/HandyHanselDir --runtime ubuntu.18.04-x64 --source https://api.nuget.org/v3/index.json --source https://nuget.emzi0767.com/api/v3/index.json 
       
     - name: Stop old process using SSH command
-      uses: garygrossgarten/github-action-ssh@v0.5.0
+      uses: garygrossgarten/github-action-ssh@v0.6.4
       with: 
         command: pkill HandyHansel
         host: ${{ secrets.LINODE_HOST_NAME }}
@@ -44,7 +44,7 @@ jobs:
         privatekey: ${{ secrets.USER_GITHUB_DEPLOY_PK }} 
         
     - name: Delete old executable using SSH command
-      uses: garygrossgarten/github-action-ssh@v0.5.0
+      uses: garygrossgarten/github-action-ssh@v0.6.4
       with: 
         command: cd HandyHansel; rm -rf ./*;
         host: ${{ secrets.LINODE_HOST_NAME }}
@@ -66,7 +66,7 @@ jobs:
         key: ${{ secrets.USER_GITHUB_DEPLOY_PK_2 }}
         
     - name: Start new process using SSH command
-      uses: garygrossgarten/github-action-ssh@v0.5.0
+      uses: garygrossgarten/github-action-ssh@v0.6.4
       with: 
         command: cd HandyHansel/HandyHanselDir; cp ~/HandyHanselResources/prodconfig.json config.json; (exec ./HandyHansel &> /dev/null &);
         host: ${{ secrets.LINODE_HOST_NAME }}
